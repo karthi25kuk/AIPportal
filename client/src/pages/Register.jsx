@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 function Register() {
 
   const [role,setRole] = useState("student");
-  const [colleges,setColleges] = useState([]);
+  const [colleges,setColleges] = useState("");
 
   // COMMON
   const [name,setName] = useState("");
@@ -25,13 +25,6 @@ function Register() {
   const [companyId,setCompanyId] = useState("");
   const [companyWebsite,setCompanyWebsite] = useState("");
   const [companyAddress,setCompanyAddress] = useState("");
-
-  // FETCH APPROVED COLLEGES
-  useEffect(()=>{
-    axios.get("http://localhost:5000/api/auth/colleges")
-    .then(res=>setColleges(res.data))
-    .catch(err=>console.log(err));
-  },[]);
 
   // SUBMIT
   const handleSubmit = async(e)=>{
@@ -107,16 +100,11 @@ function Register() {
               <input placeholder="Roll Number"
                 onChange={e=>setRollNumber(e.target.value)}
                 className="p-2 rounded bg-slate-700 text-white"/>
-
-              <select onChange={e=>setCollegeName(e.target.value)}
-                className="p-2 rounded bg-slate-700 text-white">
-                <option>Select College</option>
-                {colleges.map(c=>(
-                  <option key={c._id} value={c.collegeName}>
-                    {c.collegeName}
-                  </option>
-                ))}
-              </select>
+              
+              <input placeholder="College Name"
+                onChange={e=>setCollegeName(e.target.value)}
+                className="p-2 rounded bg-slate-700 text-white"/>
+              
             </>
           )}
 
