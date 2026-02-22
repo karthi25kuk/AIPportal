@@ -1,18 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const { createApplication, getApplications, updateApplicationStatus } = require('../controllers/applicationController');
+const {
+    createApplication,
+    getApplications,
+    updateApplicationStatus
+} = require('../controllers/applicationController');
+
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// Get all applications (or specific role based on token)
-router.get('/', protect, getApplications);
-router.get('/my', protect, getApplications);
-router.get('/industry', protect, authorize('industry'), getApplications);
-router.get('/college', protect, authorize('college'), getApplications);
 
-// Apply for a job
+// ================= GET APPLICATIONS =================
+// Role-based inside controller
+router.get('/', protect, getApplications);
+
+
+// ================= APPLY FOR JOB =================
 router.post('/:jobId', protect, authorize('student'), createApplication);
 
-// Update status (College only)
+
+// ================= COLLEGE APPROVE / REJECT =================
 router.put('/:id/status', protect, authorize('college'), updateApplicationStatus);
+
 
 module.exports = router;

@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 
 
 // ================= JWT =================
-
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '30d'
@@ -13,49 +12,60 @@ const generateToken = (id) => {
 
 
 // ================= REGISTER =================
-// Student → auto approved
-// Industry → pending approval
-// College/Admin → NOT allowed from UI
-
 const registerUser = async (req, res) => {
-    const { name, email, password, role, studentDetails, industryDetails } = req.body;
+
+    const { name, email, password, role } = req.body;
 
     try {
-        const userExists = await User.findOne({ email });
-        if (userExists)
-            return res.status(400).json({ success: false, message: 'User already exists' });
 
-        // 🚫 Block college/admin registration
-        if (role === 'college' || role === 'admin') {
+        // ✅ Only allow student & industry
+        if (!['student', 'industry'].includes(role)) {
             return res.status(403).json({
                 success: false,
-                message: "This role cannot register"
+                message: "Invalid role"
             });
         }
 
-        let status = "pending";
+        const userExists = await User.findOne({ email });
 
-        // ✅ Students auto-approved
-        if (role === "student") {
-            status = "approved";
-            // Ensure collegeName is set
-            if (!studentDetails) {
-                req.body.studentDetails = {};
-            }
-            req.body.studentDetails.collegeName = "Bannari Amman Institute of Technology";
-        }
+        if (userExists)
+            return res.status(400).json({ success: false, message: 'User already exists' });
 
-        const user = await User.create({
+        let newUserData = {
             name,
             email,
             password,
-            role,
-            status,
-            ...(role === 'student' && { studentDetails: req.body.studentDetails }),
-            ...(role === 'industry' && { industryDetails })
-        });
+            role
+        };
 
-        // ✅ Student auto-login
+        // ================= STUDENT =================
+        if (role === "student") {
+
+            newUserData.status = "approved";
+
+            newUserData.studentDetails = {
+                rollNumber: req.body.studentDetails?.rollNumber || "",
+                collegeName: "Bannari Amman Institute of Technology",
+                skills: []
+            };
+        }
+
+        // ================= INDUSTRY =================
+        if (role === "industry") {
+
+            newUserData.status = "pending";
+
+            newUserData.industryDetails = {
+                companyName: req.body.industryDetails?.companyName || "",
+                website: req.body.industryDetails?.website || "",
+                address: req.body.industryDetails?.address || "",
+                industryType: ""
+            };
+        }
+
+        const user = await User.create(newUserData);
+
+        // ✅ Student auto login
         if (role === "student") {
             return res.status(201).json({
                 success: true,
@@ -69,14 +79,13 @@ const registerUser = async (req, res) => {
             });
         }
 
-        // ✅ Industry wait approval
+        // ✅ Industry waits approval
         res.status(201).json({
             success: true,
             message: "Registered. Wait for admin approval"
         });
 
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
@@ -84,11 +93,12 @@ const registerUser = async (req, res) => {
 
 
 // ================= LOGIN =================
-
 const loginUser = async (req, res) => {
+
     const { email, password } = req.body;
 
     try {
+
         const user = await User.findOne({ email }).select('+password');
 
         if (!user)
@@ -99,11 +109,8 @@ const loginUser = async (req, res) => {
         if (!isMatch)
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
 
-        // ✅ Approval check
-        if (
-            (user.role === 'industry') &&
-            user.status !== 'approved'
-        ) {
+        // 🔒 Industry must be approved
+        if (user.role === 'industry' && user.status !== 'approved') {
             return res.status(403).json({
                 success: false,
                 message: 'Account pending admin approval'
@@ -121,7 +128,6 @@ const loginUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
@@ -129,8 +135,8 @@ const loginUser = async (req, res) => {
 
 
 // ================= GET ME =================
-
 const getMe = async (req, res) => {
+
     const user = await User.findById(req.user.id);
 
     res.json({
@@ -138,7 +144,6 @@ const getMe = async (req, res) => {
         data: user
     });
 };
-
 
 
 module.exports = {

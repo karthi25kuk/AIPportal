@@ -1,12 +1,12 @@
 import { useState } from "react";
 import api from "../api/api";
 
-export default function MyJobs({ jobs = [], applications = [] }) {
+export default function MyJobs({ jobs = [], applications = [], refresh }) {
   const [loading, setLoading] = useState(false);
 
   // Filter applications for a specific job
   const getJobApplicants = (jobId) => {
-    return applications.filter(app => app.job?._id === jobId || app.job === jobId);
+    return applications.filter((app) => app.job?._id === jobId);
   };
 
   // ===== REMOVE JOB =====
@@ -17,7 +17,8 @@ export default function MyJobs({ jobs = [], applications = [] }) {
     try {
       await api.delete(`/jobs/${jobId}`);
       alert("Job removed. ✅");
-      window.location.reload();
+
+      if (refresh) refresh(); // ✅ SPA-safe refresh
     } catch {
       alert("Failed to remove");
     } finally {
@@ -27,9 +28,12 @@ export default function MyJobs({ jobs = [], applications = [] }) {
 
   const statusColor = (status) => {
     switch (status) {
-      case 'approved': return 'text-green-500 bg-green-500/10 border-green-500/20';
-      case 'rejected': return 'text-red-500 bg-red-500/10 border-red-500/20';
-      default: return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+      case "approved":
+        return "text-green-500 bg-green-500/10 border-green-500/20";
+      case "rejected":
+        return "text-red-500 bg-red-500/10 border-red-500/20";
+      default:
+        return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
     }
   };
 
@@ -44,11 +48,13 @@ export default function MyJobs({ jobs = [], applications = [] }) {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white flex items-center">
-        <span className="p-2 bg-blue-600 rounded-lg mr-3 shadow-lg shadow-blue-500/20">📋</span> Manage Jobs
+        <span className="p-2 bg-blue-600 rounded-lg mr-3 shadow-lg shadow-blue-500/20">
+          📋
+        </span>{" "}
+        Manage Jobs
       </h2>
 
       <div className="space-y-6">
-
         {jobs.map((job) => {
           const jobApplicants = getJobApplicants(job._id);
 
@@ -64,7 +70,7 @@ export default function MyJobs({ jobs = [], applications = [] }) {
                   </h3>
                   <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
                     <span>📍 {job.location}</span>
-                    <span>💰 {job.salary || 'N/A'}</span>
+                    <span>💰 {job.salary || "N/A"}</span>
                   </div>
                 </div>
 
@@ -80,7 +86,10 @@ export default function MyJobs({ jobs = [], applications = [] }) {
               {/* Applicants */}
               <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
                 <h4 className="text-slate-400 text-xs uppercase tracking-wider font-bold mb-4 flex items-center">
-                  Applicants <span className="ml-2 bg-slate-700 text-white px-2 py-0.5 rounded-full text-xs">{jobApplicants.length}</span>
+                  Applicants{" "}
+                  <span className="ml-2 bg-slate-700 text-white px-2 py-0.5 rounded-full text-xs">
+                    {jobApplicants.length}
+                  </span>
                 </h4>
 
                 {jobApplicants.length === 0 ? (
@@ -89,13 +98,22 @@ export default function MyJobs({ jobs = [], applications = [] }) {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {jobApplicants.map(app => (
-                      <div key={app._id} className="flex justify-between items-center bg-slate-800/80 p-3 rounded border border-slate-700">
+                    {jobApplicants.map((app) => (
+                      <div
+                        key={app._id}
+                        className="flex justify-between items-center bg-slate-800/80 p-3 rounded border border-slate-700"
+                      >
                         <div>
-                          <p className="text-white font-medium">{app.student?.name}</p>
-                          <p className="text-slate-500 text-xs">{app.student?.email}</p>
+                          <p className="text-white font-medium">
+                            {app.student?.name}
+                          </p>
+                          <p className="text-slate-500 text-xs">
+                            {app.student?.email}
+                          </p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor(app.status)}`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor(app.status)}`}
+                        >
                           {app.status.toUpperCase()}
                         </span>
                       </div>
@@ -103,7 +121,6 @@ export default function MyJobs({ jobs = [], applications = [] }) {
                   </div>
                 )}
               </div>
-
             </div>
           );
         })}

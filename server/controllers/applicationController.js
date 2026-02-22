@@ -2,29 +2,32 @@ const Application = require('../models/Application');
 const Job = require('../models/Job');
 const User = require('../models/User');
 
-// @desc    Apply for a job
-// @route   POST /api/applications/:jobId
-// @access  Private (Student)
+
+// ================= APPLY FOR JOB =================
 const createApplication = async (req, res) => {
     try {
-        const student = await User.findById(req.user.id);
+
+        if (req.user.role !== "student")
+            return res.status(403).json({ success: false, message: "Only students can apply" });
+
         const job = await Job.findById(req.params.jobId);
 
-        if (!job) {
-            return res.status(404).json({ success: false, message: 'Job not found' });
+        if (!job || job.status !== "open") {
+            return res.status(404).json({ success: false, message: 'Job not found or closed' });
         }
 
-        // Check if already applied
-        const existingApplication = await Application.findOne({ student: req.user.id, job: req.params.jobId });
+        const existingApplication = await Application.findOne({
+            student: req.user.id,
+            job: req.params.jobId
+        });
+
         if (existingApplication) {
             return res.status(400).json({ success: false, message: 'Already applied to this job' });
         }
 
-        // Create application. College is implicit (single college system)
         const application = await Application.create({
             student: req.user.id,
             job: req.params.jobId,
-            industry: job.industry,
             status: 'pending'
         });
 
@@ -32,75 +35,111 @@ const createApplication = async (req, res) => {
             success: true,
             data: application
         });
+
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 
-// @desc    Get applications (Role based)
-// @route   GET /api/applications
-// @access  Private
+
+// ================= GET APPLICATIONS (ROLE BASED) =================
 const getApplications = async (req, res) => {
     try {
-        let query = {};
 
+        let applications;
+
+        // STUDENT → only their applications
         if (req.user.role === 'student') {
-            query.student = req.user.id;
-        } else if (req.user.role === 'college') {
-            // College sees all applications or filtered by status if needed
-            // Default: All pending? Or all?
-            // User requirement: "Can approve/reject... If reject, give feedback"
-            // Let's show all so they can manage them.
-        } else if (req.user.role === 'industry') {
-            query.industry = req.user.id;
-            // Industry sees only college-approved applications
-            query.status = { $in: ['approved'] }; // Simplified status
-        } else if (req.user.role === 'admin') {
-            // Admin sees all
+
+            applications = await Application.find({ student: req.user.id })
+                .populate('job', 'title companyName status')
+                .sort({ appliedDate: -1 });
+
         }
 
-        const applications = await Application.find(query)
-            .populate('student', 'name email studentDetails')
-            .populate('job', 'title companyName')
-            .sort({ createdAt: -1 });
+        // COLLEGE → all applications
+        else if (req.user.role === 'college') {
+
+            applications = await Application.find()
+                .populate('student', 'name email studentDetails')
+                .populate('job', 'title companyName')
+                .sort({ appliedDate: -1 });
+
+        }
+
+        // INDUSTRY → only approved applications for their jobs
+        else if (req.user.role === 'industry') {
+
+            const jobs = await Job.find({ industry: req.user.id });
+            const jobIds = jobs.map(job => job._id);
+
+            applications = await Application.find({
+                job: { $in: jobIds },
+                status: 'approved'
+            })
+                .populate('student', 'name email studentDetails')
+                .populate('job', 'title companyName')
+                .sort({ appliedDate: -1 });
+
+        }
+
+        // ADMIN → all
+        else if (req.user.role === 'admin') {
+
+            applications = await Application.find()
+                .populate('student', 'name email')
+                .populate('job', 'title companyName')
+                .sort({ appliedDate: -1 });
+
+        }
 
         res.status(200).json({
             success: true,
             count: applications.length,
             data: applications
         });
+
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 
-// @desc    Update application status
-// @route   PUT /api/applications/:id/status
-// @access  Private (College)
-const updateApplicationStatus = async (req, res) => {
-    const { status, notes } = req.body;
 
+// ================= COLLEGE APPROVE / REJECT =================
+const updateApplicationStatus = async (req, res) => {
     try {
-        let application = await Application.findById(req.params.id);
+
+        if (req.user.role !== 'college')
+            return res.status(403).json({ success: false, message: 'Only college can update application status' });
+
+        const { status, feedback } = req.body;
+
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Status must be approved or rejected'
+            });
+        }
+
+        const application = await Application.findById(req.params.id);
 
         if (!application) {
             return res.status(404).json({ success: false, message: 'Application not found' });
         }
 
-        // ONLY COLLEGE can change status in this single-college flow
-        // Student applies -> College approves/rejects -> Industry reviews
-        if (req.user.role !== 'college') {
-            return res.status(403).json({ success: false, message: 'Only college admin can update application status' });
-        }
-
-        if (!['approved', 'rejected'].includes(status)) {
-            return res.status(400).json({ success: false, message: 'Invalid status. Use approved or rejected.' });
+        // Prevent re-processing
+        if (application.status !== 'pending') {
+            return res.status(400).json({
+                success: false,
+                message: 'Application already processed'
+            });
         }
 
         application.status = status;
-        if (notes) application.collegeNotes = notes;
+
+        if (status === 'rejected' && feedback) {
+            application.feedback = feedback;
+        }
 
         await application.save();
 
@@ -110,10 +149,10 @@ const updateApplicationStatus = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
 
 module.exports = {
     createApplication,

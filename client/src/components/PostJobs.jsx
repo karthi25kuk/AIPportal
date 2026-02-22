@@ -1,21 +1,21 @@
 import { useState } from "react";
 import api from "../api/api";
 
-export default function PostJob() {
+export default function PostJob({ refresh }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
     skills: "",
     salary: "",
     website: "",
-    location: ""
+    location: "",
   });
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -24,16 +24,16 @@ export default function PostJob() {
     setLoading(true);
 
     try {
-      const skillsArray = form.skills.split(",").map(s => s.trim());
+      const skillsArray = form.skills.split(",").map((s) => s.trim());
 
       await api.post("/jobs", {
         title: form.title,
         description: form.description,
         skills: skillsArray,
-        salary: form.salary,
-        type: "Full Time", // Could be a form field
+        salary: form.salary ? Number(form.salary) : undefined,
+        type: form.type, // Could be a form field
         // website: form.website, // Not directly supported by schema, maybe include in description or add to model
-        // My Job model didn't have website, but I can add it or just ignore. 
+        // My Job model didn't have website, but I can add it or just ignore.
         // For now I'll ignore 'website' or embed it in description.
         // Actually, let's just send what we have, if not in schema it's ignored.
         location: form.location,
@@ -47,10 +47,11 @@ export default function PostJob() {
         description: "",
         skills: "",
         salary: "",
-        website: "",
-        location: ""
+        location: "",
+        type: "Full-time",
       });
 
+      if (refresh) refresh();
     } catch (err) {
       alert(err.response?.data?.message || "Error posting job");
     } finally {
@@ -60,17 +61,20 @@ export default function PostJob() {
 
   return (
     <div className="flex justify-center px-4 max-w-4xl mx-auto">
-
       <div className="w-full bg-slate-800 border border-slate-700 rounded-xl p-8 shadow-2xl relative overflow-hidden">
-
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-bl-full -z-0"></div>
 
         <h1 className="text-3xl font-bold text-white mb-8 flex items-center relative z-10">
-          <span className="bg-blue-600 p-2 rounded-lg mr-3 shadow-lg shadow-blue-500/30">💼</span> Post a New Job
+          <span className="bg-blue-600 p-2 rounded-lg mr-3 shadow-lg shadow-blue-500/30">
+            💼
+          </span>{" "}
+          Post a New Job
         </h1>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
-
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6 relative z-10"
+        >
           <div className="grid md:grid-cols-2 gap-6">
             {/* Job Role */}
             <div className="flex flex-col gap-2">
@@ -121,10 +125,26 @@ export default function PostJob() {
               required
             />
           </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+              Job Type
+            </label>
+
+            <select
+              name="type"
+              value={form.type}
+              onChange={handleChange}
+              className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            >
+              <option value="Full-time">Full-time</option>
+              <option value="Internship">Internship</option>
+              <option value="Contract">Contract</option>
+              <option value="Part-time">Part-time</option>
+            </select>
+          </div>
 
           {/* Salary + Location Row */}
           <div className="grid md:grid-cols-2 gap-6">
-
             <div className="flex flex-col gap-2">
               <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
                 Salary (Optional)
@@ -151,18 +171,16 @@ export default function PostJob() {
                 required
               />
             </div>
-
           </div>
 
           {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className={`mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/30 transition transform hover:-translate-y-1 active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/30 transition transform hover:-translate-y-1 active:scale-95 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
           >
-            {loading ? 'Posting Job...' : 'Publish Job Post'}
+            {loading ? "Posting Job..." : "Publish Job Post"}
           </button>
-
         </form>
       </div>
     </div>

@@ -5,28 +5,24 @@ const jobSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a job title']
   },
+
   description: {
     type: String,
     required: [true, 'Please add a job description']
   },
+
   skills: {
     type: [String],
     required: true
   },
-  salary: {
-    type: Number
-  },
 
-  type: { // Full-time, Internship, etc.
+  salary: Number,
+
+  type: {
     type: String,
     enum: ['Full-time', 'Internship', 'Contract', 'Part-time'],
     default: 'Full-time'
   },
-
-  applications: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Application'
-  }],
 
   industry: {
     type: mongoose.Schema.Types.ObjectId,
@@ -34,8 +30,7 @@ const jobSchema = new mongoose.Schema({
     required: true
   },
 
-  // Auto-filled from User details for easier querying
-  companyName: String,
+  companyName: String,   // auto-filled from industry user
   location: String,
 
   status: {

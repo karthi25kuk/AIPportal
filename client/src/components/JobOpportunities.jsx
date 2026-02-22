@@ -2,7 +2,7 @@ import { useState } from "react";
 import api from "../api/api";
 import { Link, useNavigate } from "react-router-dom";
 
-export default function JobOpportunities({ role, jobs = [] }) {
+export default function JobOpportunities({ role, jobs = [], refresh }) {
   const navigate = useNavigate();
   const [selectedJob, setSelectedJob] = useState(null);
   const [applying, setApplying] = useState(false);
@@ -21,7 +21,7 @@ export default function JobOpportunities({ role, jobs = [] }) {
       alert("Applied successfully ✅");
       setSelectedJob(null);
       // Optional: instead of reload, just update UI
-      window.location.reload();
+      if (refresh) refresh();
     } catch (err) {
       alert(err.response?.data?.message || "Apply failed");
     } finally {
@@ -115,7 +115,7 @@ export default function JobOpportunities({ role, jobs = [] }) {
                 </div>
                 <div>
                   <p className="text-slate-500 text-xs uppercase font-bold">Type</p>
-                  <p className="text-white">{selectedJob.type || "Full Time"}</p>
+                  <p className="text-white">{selectedJob.type || "Full-time"}</p>
                 </div>
               </div>
 
