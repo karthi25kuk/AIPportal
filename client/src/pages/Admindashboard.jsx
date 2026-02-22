@@ -1,151 +1,228 @@
-import { useState,useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import api from "../api/api";
+import { useNavigate } from "react-router-dom";
 
-export default function AdminDashboard(){
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState("dashboard");
 
-  const [tab,setTab] = useState("dashboard");
-  const [stats,setStats] = useState({});
-  const [list,setList] = useState([]);
-  const [selected,setSelected] = useState(null);
+  const [stats, setStats] = useState({
+    students: 0,
+    industries: {
+      total: 0,
+      approved: 0,
+      pending: 0
+    }
+  });
+
+  const [list, setList] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // AUTH CHECK
+  useEffect(() => {
+    if (localStorage.getItem("role") !== "admin") {
+      navigate("/adminlogin");
+    }
+  }, [navigate]);
 
   // LOAD STATS
-  useEffect(()=>{
-    axios.get("http://localhost:5000/api/auth/admin/stats")
-      .then(res=>setStats(res.data));
-  },[]);
+  useEffect(() => {
+    if (tab === "dashboard") {
+      api.get("/admin/stats")
+        .then(res => setStats(res.data.data))
+        .catch(console.error);
+    }
+  }, [tab]);
 
-  // LOAD LIST
-  const loadList = (type)=>{
-    axios.get(`http://localhost:5000/api/auth/pending/${type}`)
-      .then(res=>setList(res.data));
+  // LOAD INDUSTRIES
+  useEffect(() => {
+    if (tab === "industry") loadIndustries();
+  }, [tab]);
+
+  const loadIndustries = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/admin/users");
+      const pending = res.data.data.filter(
+        u => u.role === "industry" && u.status === "pending"
+      );
+      setList(pending);
+    } catch (err) {
+      console.error(err);
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const approve = async(id)=>{
-    await axios.put(`http://localhost:5000/api/auth/approve/${id}`);
-    loadList(tab);
+  const handleAction = async (id, status) => {
+    try {
+      await api.put(`/admin/users/${id}/status`, { status });
+      alert(`Industry ${status}`);
+      setSelectedUser(null);
+      loadIndustries();
+      api.get("/admin/stats").then(res => setStats(res.data.data));
+    } catch {
+      alert("Action failed");
+    }
   };
 
-  const reject = async(id)=>{
-    await axios.delete(`http://localhost:5000/api/auth/reject/${id}`);
-    loadList(tab);
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/adminlogin");
   };
 
-  const Card = ({title,data})=>(
-    <div className="bg-slate-800 p-6 rounded text-white">
-      <h3 className="text-xl mb-2">{title}</h3>
-      <p>Total: {data?.total}</p>
-      <p className="text-green-400">Approved: {data?.approved}</p>
-      <p className="text-yellow-400">Pending: {data?.pending}</p>
-    </div>
-  );
-
-  return(
-    <div className="flex min-h-screen bg-slate-900">
+  return (
+    <div className="flex min-h-screen bg-slate-900 text-white">
 
       {/* SIDEBAR */}
-      <div className="w-64 bg-slate-800 p-6 text-white flex flex-col">
-        <h2 className="text-2xl font-bold text-blue-500 mb-8">Admin</h2>
+      <div className="w-64 bg-slate-800 border-r border-slate-700 p-6 flex flex-col">
 
-        <ul className="space-y-3">
-          <li onClick={()=>setTab("dashboard")} className="cursor-pointer mt-2">Dashboard</li>
+        <h2 className="text-2xl font-bold text-red-500 mb-2">
+          AIP Admin
+        </h2>
 
-          <li onClick={()=>{setTab("colleges");loadList("colleges");}}
-            className="cursor-pointer mt-2">
-            College Approval
-          </li>
+        <ul className="flex-1 space-y-2">
+          <NavItem
+            active={tab==="dashboard"}
+            onClick={()=>setTab("dashboard")}
+            label="Dashboard"
+          />
 
-          <li onClick={()=>{setTab("industry");loadList("industry");}}
-            className="cursor-pointer mt-4">
-            Industry Approval
-          </li>
+          <NavItem
+            active={tab==="industry"}
+            onClick={()=>setTab("industry")}
+            label="Industry Approvals"
+            badge={stats.industries?.pending}
+          />
         </ul>
+
+        <button
+          onClick={handleLogout}
+          className="mt-auto py-2 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded"
+        >
+          Logout
+        </button>
       </div>
 
       {/* MAIN */}
       <div className="flex-1 p-8">
 
+        <h1 className="text-3xl font-bold mb-8 capitalize">
+          {tab} Overview
+        </h1>
+
         {/* DASHBOARD */}
         {tab==="dashboard" && (
-          <div className="grid grid-cols-3 gap-6">
-            <Card title="Students" data={stats.students}/>
-            <Card title="Colleges" data={stats.colleges}/>
-            <Card title="Industry" data={stats.industry}/>
+          <div className="grid md:grid-cols-3 gap-6">
+
+            <StatCard
+              title="Total Students"
+              value={stats.students}
+              icon="👨‍🎓"
+              color="blue"
+            />
+
+            <StatCard
+              title="Total Industries"
+              value={stats.industries.total}
+              icon="🏭"
+              color="purple"
+            />
+
+            <StatCard
+              title="Pending Approvals"
+              value={stats.industries.pending}
+              icon="⏳"
+              color="orange"
+              onClick={()=>setTab("industry")}
+            />
+
           </div>
         )}
 
-        {/* APPROVAL LIST */}
-        {(tab==="colleges" || tab==="industry") && (
-          <>
-            <h1 className="text-2xl text-white mb-6">
-              Pending {tab}
-            </h1>
+        {/* INDUSTRY LIST */}
+        {tab==="industry" && (
+          <div className="bg-slate-800 rounded-xl overflow-hidden">
 
-            {list.map(u=>(
-              <div key={u._id}
-                className="bg-slate-800 p-4 mb-3 flex justify-between text-white">
-
-                <div>
-                  <p>{u.name}</p>
-                  <p>{u.email}</p>
-                  <p>{u.collegeAddress || u.companyAddress}</p>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={()=>setSelected(u)}
-                    className="bg-blue-600 px-3">
-                    Details
-                  </button>
-
-                  <button
-                    onClick={()=>approve(u._id)}
-                    className="bg-green-600 px-3">
-                    Approve
-                  </button>
-
-                  <button
-                    onClick={()=>reject(u._id)}
-                    className="bg-red-600 px-3">
-                    Reject
-                  </button>
-                </div>
-
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">
+                Loading...
               </div>
-            ))}
-          </>
+            ) : list.length===0 ? (
+              <div className="p-8 text-center text-slate-500">
+                No pending industries
+              </div>
+            ) : (
+              list.map(u=>(
+                <div
+                  key={u._id}
+                  className="p-4 border-b border-slate-700 flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-bold">{u.name}</p>
+                    <p className="text-slate-400">{u.email}</p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={()=>setSelectedUser(u)}
+                      className="px-4 py-2 bg-slate-700 rounded"
+                    >
+                      Details
+                    </button>
+
+                    <button
+                      onClick={()=>handleAction(u._id,"approved")}
+                      className="px-4 py-2 bg-green-600 rounded"
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      onClick={()=>handleAction(u._id,"rejected")}
+                      className="px-4 py-2 bg-red-600 rounded"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+
+          </div>
         )}
 
       </div>
 
       {/* MODAL */}
-      {selected && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
 
-          <div className="bg-white p-6 rounded w-96">
+          <div className="bg-slate-900 p-8 rounded-xl w-full max-w-lg">
 
-            <h2 className="text-xl mb-3">{selected.name}</h2>
-            <p>Email: {selected.email}</p>
-            <p>ID: {selected.collegeId || selected.companyId}</p>
-            <p>Website: {selected.collegeWebsite || selected.companyWebsite}</p>
-            <p>Address: {selected.collegeAddress || selected.companyAddress}</p>
+            <h2 className="text-xl font-bold mb-4">
+              {selectedUser.name}
+            </h2>
 
-            <div className="flex gap-3 mt-4">
+            <p>Email: {selectedUser.email}</p>
+            <p>Address: {selectedUser.industryDetails?.address}</p>
+            <p>Website: {selectedUser.industryDetails?.website}</p>
+
+            <div className="flex gap-3 mt-6">
               <button
-                onClick={()=>approve(selected._id)}
-                className="bg-green-600 text-white px-4 py-2">
+                onClick={()=>handleAction(selectedUser._id,"approved")}
+                className="bg-green-600 px-6 py-2 rounded"
+              >
                 Approve
               </button>
 
               <button
-                onClick={()=>reject(selected._id)}
-                className="bg-red-600 text-white px-4 py-2">
+                onClick={()=>handleAction(selectedUser._id,"rejected")}
+                className="bg-red-600 px-6 py-2 rounded"
+              >
                 Reject
-              </button>
-
-              <button
-                onClick={()=>setSelected(null)}
-                className="bg-gray-500 text-white px-4 py-2">
-                Close
               </button>
             </div>
 
@@ -155,4 +232,36 @@ export default function AdminDashboard(){
 
     </div>
   );
+}
+
+
+/* COMPONENTS */
+function NavItem({active,onClick,label,badge}){
+  return(
+    <li
+      onClick={onClick}
+      className={`cursor-pointer px-4 py-3 rounded flex justify-between
+      ${active?"bg-red-600 text-white":"text-slate-400 hover:bg-slate-700"}`}
+    >
+      {label}
+      {badge>0 && (
+        <span className="bg-white text-red-600 px-2 rounded-full text-xs">
+          {badge}
+        </span>
+      )}
+    </li>
+  )
+}
+
+function StatCard({title,value,icon,color,onClick}){
+  return(
+    <div
+      onClick={onClick}
+      className="p-6 rounded-xl border bg-slate-800 cursor-pointer"
+    >
+      <p className="text-slate-400 text-sm">{title}</p>
+      <p className="text-3xl font-bold">{value}</p>
+      <span>{icon}</span>
+    </div>
+  )
 }

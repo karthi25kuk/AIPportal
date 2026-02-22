@@ -1,485 +1,209 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import api from "../api/api";
+import { useNavigate } from "react-router-dom";
+
+import MyApplications from "../components/MyApplications";
+import MyJobs from "../components/MyJobs";
+import PostJob from "../components/PostJobs";
+import JobOpportunities from "../components/JobOpportunities";
+import StudentApprovals from "../components/StudentApprovals";
 
 function Dashboard() {
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const navigate = useNavigate();
 
-  // Change role here to test: student / college / industry
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  const role = localStorage.getItem("role") || "student";
+  const [jobs, setJobs] = useState([]);      // public jobs
+  const [myJobs, setMyJobs] = useState([]);  // industry-only jobs
+  const [applications, setApplications] = useState([]);
 
-  const [pending_Students] = useState([
-    { id: 1, name: "Karthi", roll: "EC183", company: "ABC Corp" },
-    { id: 2, name: "Priya", roll: "CS103", company: "xy Tech" },
-    { id: 3, name: "Anu", roll: "EC134", company: "TCS" },
-  ]);
+  const [loading, setLoading] = useState(true);
 
-  const [job] = useState([
-    { id: 1, role: "coder", skill: "java", company: "ABC Corp" },
-    { id: 2, role: "programmer", skill: "python", company: "xy Tech" },
-    { id: 3, role: "ui designer", skill: "figma", company: "TCS" },
-  ]);
+  const [stats, setStats] = useState({
+    total: 0,
+    approved: 0,
+    pending: 0,
+    applicants: 0,
+    totalJobs: 0,
+  });
+
+  const role = localStorage.getItem("role");
+  const name = localStorage.getItem("name");
+
+  // Auth check
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  // ===== MAIN DATA FETCH =====
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+
+      try {
+        let newStats = {
+          total: 0,
+          approved: 0,
+          pending: 0,
+          applicants: 0,
+          totalJobs: 0,
+        };
+
+        // ALWAYS load public jobs
+        const publicJobsRes = await api.get("/jobs");
+        setJobs(publicJobsRes.data.data || []);
+
+        // ===== STUDENT =====
+        if (role === "student") {
+          const res = await api.get("/applications/my");
+          const apps = res.data.data || [];
+          setApplications(apps);
+
+          newStats.total = apps.length;
+          newStats.approved = apps.filter(a => a.status === "approved").length;
+          newStats.pending = apps.filter(a => a.status === "pending").length;
+        }
+
+        // ===== INDUSTRY =====
+        if (role === "industry") {
+          const myJobsRes = await api.get("/jobs/my");
+          const myJobsData = myJobsRes.data.data || [];
+
+          setMyJobs(myJobsData);
+          newStats.totalJobs = myJobsData.length;
+
+          const appsRes = await api.get("/applications/industry");
+          const apps = appsRes.data.data || [];
+          setApplications(apps);
+
+          newStats.applicants = apps.length;
+          newStats.approved = apps.filter(a => a.status === "approved").length;
+        }
+
+        // ===== COLLEGE =====
+        if (role === "college") {
+          const res = await api.get("/applications/college");
+          const apps = res.data.data || [];
+          setApplications(apps);
+
+          newStats.total = apps.length;
+          newStats.approved = apps.filter(a => a.status === "approved").length;
+          newStats.pending = apps.filter(a => a.status === "pending").length;
+        }
+
+        setStats(newStats);
+
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (role) fetchData();
+  }, [role]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
+  if (!role) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-60 bg-slate-800 text-white p-5">
-        <h2 className="text-2xl text-blue-600 font-bold mb-8">AIPportal</h2>
+    <div className="flex min-h-screen bg-slate-900 text-white font-sans">
 
-        <ul className="space-y-4">
-          <li
-            onClick={() => setActiveTab("dashboard")}
-            className="hover:bg-slate-700 p-2 cursor-pointer rounded"
-          >
-            Dashboard
-          </li>
-          {(role === "student" ||
-            role === "industry" ||
-            role === "college") && (
-            <li
-              onClick={() => setActiveTab("opportunities")}
-              className="hover:bg-slate-700 p-2 cursor-pointer rounded"
-            >
-              Opportunities
-            </li>
-          )}
-          {role === "industry" && (
-            <li
-              onClick={() => setActiveTab("postjobs")}
-              className="hover:bg-slate-700 p-2 cursor-pointer rounded"
-            >
-              Post Jobs
-            </li>
-          )}
-          {role === "industry" && (
-            <li
-              onClick={() => setActiveTab("postjobs")}
-              className="hover:bg-slate-700 p-2 cursor-pointer rounded"
-            >
-              My Posted Jobs
-            </li>
-          )}
-          {role === "college" && (
-            <li
-              onClick={() => setActiveTab("studentapprovals")}
-              className="hover:bg-slate-700 p-2 cursor-pointer rounded"
-            >
-              Student Approvals
-            </li>
-          )}
-          <Link to="/" className="block hover:bg-slate-700 p-2 rounded">
-            Logout
-          </Link>
-        </ul>
-      </div>
-
-      {/* Main Area */}
-      <div className="flex-1 p-6 bg-gradient-to-b from-slate-900 to-slate-800">
-        {/* Topbar */}
-        <div className="flex justify-between mb-10">
-          <h1 className="text-2xl text-white font-bold">Welcome, User</h1>
-
-          <span className="bg-blue-600 text-white px-3 py-1 rounded">
-            {role.toUpperCase()}
-          </span>
+      {/* SIDEBAR */}
+      <div className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+        <div className="p-6 border-b border-slate-700">
+          <h2 className="text-2xl text-blue-500 font-extrabold">AIP Portal</h2>
+          <p className="text-slate-400 text-xs mt-1 uppercase">{role}</p>
         </div>
 
-        {activeTab === "dashboard" && (
-          <div className="grid grid-cols-4 gap-4 mb-6 ">
-            <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-8 hover:bg-slate-700 transition">
-              {role === "student" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Total Registerations
-                </p>
-              )}
-              {role === "college" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Total Students
-                </p>
-              )}
-              {role === "industry" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Total Jobs posted
-                </p>
-              )}
-              {role === "student" && (
-                <h2 className="text-xl text-gray-300 ">23</h2>
-              )}
-              {role === "college" && (
-                <h2 className="text-xl text-gray-300 ">34</h2>
-              )}
-              {role === "industry" && (
-                <h2 className="text-xl text-gray-300 ">89</h2>
-              )}
-            </div>
+        <nav className="flex-1 p-4 space-y-2">
+          <NavItem active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} label="Dashboard" />
+          <NavItem active={activeTab === "opportunities"} onClick={() => setActiveTab("opportunities")} label="Job Opportunities" />
 
-            <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-8 hover:bg-slate-700 transition">
-              {role === "student" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Approved Applications
-                </p>
-              )}
-              {role === "college" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Pending Verifications
-                </p>
-              )}
-              {role === "industry" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Total Applicants
-                </p>
-              )}
-              {role === "student" && (
-                <h2 className="text-xl text-gray-300 ">23</h2>
-              )}
-              {role === "college" && (
-                <h2 className="text-xl text-gray-300 ">
-                  {pending_Students.length}
-                </h2>
-              )}
-              {role === "industry" && (
-                <h2 className="text-xl text-gray-300 ">89</h2>
-              )}
-            </div>
+          {role === "industry" && <NavItem active={activeTab === "postjobs"} onClick={() => setActiveTab("postjobs")} label="Post New Job" />}
+          {role === "student" && <NavItem active={activeTab === "myapplications"} onClick={() => setActiveTab("myapplications")} label="My Applications" />}
+          {role === "industry" && <NavItem active={activeTab === "myjobs"} onClick={() => setActiveTab("myjobs")} label="Manage Jobs" />}
+          {role === "college" && <NavItem active={activeTab === "studentapprovals"} onClick={() => setActiveTab("studentapprovals")} label="Student Approvals" />}
+        </nav>
 
-            <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-8 hover:bg-slate-700 transition">
-              {role === "student" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Pending Applications
-                </p>
-              )}
-              {role === "college" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Approved Students
-                </p>
-              )}
-              {role === "industry" && (
-                <p className="text-xl text-white mb-2 font-bold">
-                  Shortlisted Students
-                </p>
-              )}
-              {role === "student" && (
-                <h2 className="text-xl text-gray-300 ">23</h2>
-              )}
-              {role === "college" && (
-                <h2 className="text-xl text-gray-300 ">34</h2>
-              )}
-              {role === "industry" && (
-                <h2 className="text-xl text-gray-300 ">89</h2>
-              )}
-            </div>
-          </div>
-        )}
-        {/* Cards */}
+        <div className="p-4 border-t border-slate-700">
+          <p className="text-sm text-white">{name}</p>
+          <button onClick={handleLogout} className="w-full bg-red-600/10 text-red-500 py-2 rounded mt-3">
+            Logout
+          </button>
+        </div>
+      </div>
 
-        {/* Role-Based Content */}
+      {/* MAIN */}
+      <div className="flex-1 p-8">
 
-        {role === "college" && activeTab === "studentapprovals" && (
+        {loading ? (
+          <div className="text-center text-blue-400">Loading...</div>
+        ) : (
           <>
-            <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-8">
-              <h2 className="text-xl  text-white font-bold mb-4">
-                Student Approvals
-              </h2>
-              {pending_Students.map((student) => (
-                <div
-                  key={student.id}
-                  className="grid grid-cols-4 items-center gap-4 p-3 mb-4 bg-slate-800 border border-gray-600 rounded-md"
-                >
-                  <div className="text-white font-medium truncate">
-                    {student.name}
-                  </div>
+            {activeTab === "dashboard" && (
+              <div className="grid md:grid-cols-3 gap-6">
 
-                  <div className="text-white truncate">{student.roll}</div>
+                {role === "student" && <>
+                  <Card title="Total Applications" value={stats.total} />
+                  <Card title="Approved" value={stats.approved} />
+                  <Card title="Pending" value={stats.pending} />
+                </>}
 
-                  <div className="text-white truncate">{student.company}</div>
+                {role === "college" && <>
+                  <Card title="Total Requests" value={stats.total} />
+                  <Card title="Approved" value={stats.approved} />
+                  <Card title="Pending" value={stats.pending} />
+                </>}
 
-                  <div className="flex gap-3 justify-end">
-                    <button
-                      onClick={() => setSelectedStudent(student)}
-                      className="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 transition text-sm font-medium"
-                    >
-                      Details
-                    </button>
-                    {selectedStudent && (
-                      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                        {/* Modal */}
-                        <div className="bg-slate-800 w-full max-w-md rounded-xl p-6 relative border border-slate-600 shadow-xl">
-                          {/* Close */}
-                          <button
-                            onClick={() => setSelectedStudent(null)}
-                            className="absolute top-3 right-3 text-slate-400 hover:text-white text-xl"
-                          >
-                            ✕
-                          </button>
+                {role === "industry" && <>
+                  <Card title="Jobs Posted" value={stats.totalJobs} />
+                  <Card title="Applicants" value={stats.applicants} />
+                  <Card title="Approved Students" value={stats.approved} />
+                </>}
+              </div>
+            )}
 
-                          {/* Title */}
-                          <h2 className="text-2xl font-bold text-white mb-6">
-                            Student Details
-                          </h2>
+            {activeTab === "studentapprovals" && role === "college" && <StudentApprovals applications={applications} refreshApplications={fetchData} />}
 
-                          {/* Details */}
-                          <div className="space-y-3 text-slate-300">
-                            <p>
-                              <span className="font-semibold text-white">
-                                Name:
-                              </span>{" "}
-                              {selectedStudent.name}
-                            </p>
+            {role === "industry" && activeTab === "postjobs" && <PostJob />}
 
-                            <p>
-                              <span className="font-semibold text-white">
-                                Roll:
-                              </span>{" "}
-                              {selectedStudent.roll}
-                            </p>
+            {role === "student" && activeTab === "myapplications" && <MyApplications applications={applications} />}
 
-                            <p>
-                              <span className="font-semibold text-white">
-                                Company:
-                              </span>{" "}
-                              {selectedStudent.company}
-                            </p>
+            {/* ✅ PASS APPLICATIONS TO MYJOBS FOR INDUSTRY */}
+            {activeTab === "myjobs" && role === "industry" && <MyJobs jobs={myJobs} applications={applications} />}
 
-                            {/* Add more fields if available */}
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex justify-end gap-3 mt-6">
-                            <button className="bg-green-600 px-5 py-2 rounded-lg hover:bg-green-700 text-white">
-                              Approve
-                            </button>
-
-                            <button className="bg-red-600 px-5 py-2 rounded-lg hover:bg-red-700 text-white">
-                              Reject
-                            </button>
-
-                            <button
-                              onClick={() => setSelectedStudent(null)}
-                              className="bg-gray-600 px-5 py-2 rounded-lg hover:bg-gray-700 text-white"
-                            >
-                              Close
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <button className="bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 transition text-sm font-medium">
-                      Approve
-                    </button>
-
-                    <button className="bg-red-600 text-white px-4 py-1.5 rounded hover:bg-red-700 transition text-sm font-medium">
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {activeTab === "opportunities" && <JobOpportunities role={role} jobs={jobs} />}
           </>
         )}
-        {role === "industry" && activeTab === "postjobs" && (
-          <div className="space-y-6">
-            <h1 className="text-gray-50 text-lg font-semibold">
-              Describe Job Role
-            </h1>
-            <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-8 max-w-xl">
-              <form className="flex flex-col gap-5 max-w-lg">
-                {/* Job Role */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Job Role
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Frontend Developer"
-                    className="w-full bg-slate-500/20 text-white py-2.5 px-4 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
 
-                {/* Description */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Description
-                  </label>
-                  <textarea
-                    placeholder="Brief job description..."
-                    rows="3"
-                    className="w-full bg-slate-500/20 text-white py-2.5 px-4 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                {/* Skills */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Skills Required
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="React, Node.js, SQL..."
-                    className="w-full bg-slate-500/20 text-white py-2.5 px-4 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                {/* Salary */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Salary
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="₹ / month or year"
-                    className="w-full bg-slate-500/20 text-white py-2.5 px-4 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                {/* Website */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Company Website
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://company.com"
-                    className="w-full bg-slate-500/20 text-white py-2.5 px-4 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                {/* Location */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="City / Remote"
-                    className="w-full bg-slate-500/20 text-white py-2.5 px-4 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                {/* Button */}
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition transform hover:scale-[1.02] shadow-md mt-2"
-                >
-                  Post Job
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-        {(role === "student" || role === "college" || role === "industry") &&
-          activeTab === "opportunities" && (
-            <div className="grid md:grid-cols-3 gap-6">
-              {job.map((job) => (
-                <div
-                  key={job.id}
-                  className="bg-slate-700/50 border border-slate-600 rounded-lg p-6 hover:bg-slate-700 transition"
-                >
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    {job.role}
-                  </h3>
-                  <p className="text-slate-300 mb-2">
-                    <span className="font-semibold text-white">Company:</span>{" "}
-                    {job.company}
-                  </p>
-                  <p className="text-slate-300 mb-2">
-                    <span className="font-semibold text-white">Skills:</span>{" "}
-                    {job.skill}
-                  </p>
-                  <button
-                    onClick={() => setSelectedJob(job)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm font-medium"
-                  >
-                    View Details
-                  </button>
-                  {selectedJob && (
-                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                      {/* Modal */}
-                      <div className="bg-slate-800 w-full max-w-lg rounded-xl p-6 relative shadow-xl border border-slate-600 animate-fadeIn">
-                        {/* Close Button */}
-                        <button
-                          onClick={() => setSelectedJob(null)}
-                          className="absolute top-3 right-3 text-slate-400 hover:text-white text-xl"
-                        >
-                          ✕
-                        </button>
-
-                        {/* Content */}
-                        <h2 className="text-2xl font-bold text-white mb-4">
-                          {selectedJob.role}
-                        </h2>
-
-                        <div className="space-y-3 text-slate-300">
-                          <p>
-                            <span className="text-white font-semibold">
-                              Company:
-                            </span>{" "}
-                            {selectedJob.company}
-                          </p>
-
-                          <p>
-                            <span className="text-white font-semibold">
-                              Skills:
-                            </span>{" "}
-                            {selectedJob.skill}
-                          </p>
-
-                          <p>
-                            <span className="text-white font-semibold">
-                              Location:
-                            </span>{" "}
-                            {selectedJob.location || "Not specified"}
-                          </p>
-
-                          <p>
-                            <span className="text-white font-semibold">
-                              Salary:
-                            </span>{" "}
-                            {selectedJob.salary || "Not disclosed"}
-                          </p>
-
-                          <p>
-                            <span className="text-white font-semibold">
-                              Description:
-                            </span>
-                            <br />
-                            {selectedJob.description ||
-                              "No description provided."}
-                          </p>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="mt-6 flex justify-end gap-3">
-                          {role === "student" && (
-                            <button className="bg-green-600 px-5 py-2 rounded-lg hover:bg-green-700 text-white font-medium">
-                              Apply
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => setSelectedJob(null)}
-                            className="bg-gray-600 px-5 py-2 rounded-lg hover:bg-gray-700 text-white"
-                          >
-                            Close
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
       </div>
     </div>
   );
 }
+
+function NavItem({ active, onClick, label }) {
+  return (
+    <div onClick={onClick}
+      className={`px-4 py-3 cursor-pointer rounded ${active ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-700"}`}>
+      {label}
+    </div>
+  )
+}
+
+function Card({ title, value }) {
+  return (
+    <div className="p-6 bg-slate-800 rounded-xl border border-slate-700">
+      <p className="text-slate-400">{title}</p>
+      <p className="text-3xl font-bold">{value || 0}</p>
+    </div>
+  )
+}
+
 export default Dashboard;

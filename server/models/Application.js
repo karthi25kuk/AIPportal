@@ -1,20 +1,37 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const applicationSchema = new mongoose.Schema({
-  studentId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"User"
+  student: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
-  jobId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"Job"
+  job: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job',
+    required: true
   },
-  collegeName:String,
-  status:{
-    type:String,
-    enum:["pending","approved","rejected"],
-    default:"pending"
+  industry: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+
+  // Notes from College (feedback on rejection or comments)
+  collegeNotes: String,
+  appliedDate: {
+    type: Date,
+    default: Date.now
   }
 });
 
-module.exports = mongoose.model("Application",applicationSchema);
+// Prevent multiple applications for same job by one student
+applicationSchema.index({ student: 1, job: 1 }, { unique: true });
+
+module.exports = mongoose.model('Application', applicationSchema);
