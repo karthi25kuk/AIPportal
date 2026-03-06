@@ -207,8 +207,10 @@ export default function AdminDashboard() {
             </h2>
 
             <p>Email: {selectedUser.email}</p>
-            <p>Address: {selectedUser.industryDetails?.address}</p>
+            <p>CompanyID: {selectedUser.industryDetails?.companyID}</p>
+            <p>CompanyType: {selectedUser.industryDetails?.companyType}</p>
             <p>Website: {selectedUser.industryDetails?.website}</p>
+            <p>Address: {selectedUser.industryDetails?.address}</p>
 
             <div className="flex gap-3 mt-6">
               <button

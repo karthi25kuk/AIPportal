@@ -14,6 +14,32 @@ const applicationSchema = new mongoose.Schema({
     required: true
   },
 
+  // Academic details submitted by student
+  tenth: {
+    type: Number,
+    required: true
+  },
+
+  twelfth: {
+    type: Number,
+    required: true
+  },
+
+  cgpa: {
+    type: Number,
+    required: true
+  },
+
+  phone: {
+    type: String,
+    required: true
+  },
+
+  resumeLink: {
+    type: String,
+    required: true
+  },
+
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

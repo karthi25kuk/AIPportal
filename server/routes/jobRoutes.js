@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getJobs, getJob, createJob, updateJob, deleteJob, getMyJobs } = require('../controllers/jobController');
+const { getJobs, getJob, createJob, updateJob, deleteJob, getMyJobs,updateJobStatus } = require('../controllers/jobController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 router.route('/')
@@ -13,5 +13,6 @@ router.route('/:id')
     .get(getJob)
     .put(protect, authorize('industry'), updateJob)
     .delete(protect, authorize('industry'), deleteJob);
+router.put('/:id/status', protect, authorize('industry'), updateJobStatus);
 
 module.exports = router;

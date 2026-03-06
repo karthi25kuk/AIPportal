@@ -52,6 +52,18 @@ function Login() {
   };
 
   return (
+    <>
+    <header>
+      <nav className="bg-black text-white p-4 flex justify-between items-center">
+        <h1 className="text-xl font-bold">AIP Portal</h1>
+        <div>
+          <Link to="/" className="px-3 py-2 rounded bg-gray-800 hover:bg-gray-700 transition">
+            Home
+          </Link>
+        </div>
+      </nav>
+    </header>
+    
     <div className="min-h-screen bg-black flex items-center justify-center">
 
       <div className="bg-gray-950 p-10 rounded-lg w-full max-w-md text-center border border-gray-800">
@@ -104,15 +116,9 @@ function Login() {
             Register
           </Link>
         </p>
-
-        <p className="text-slate-500 mt-2 text-sm">
-          <Link to="/adminlogin" className="hover:text-slate-300">
-            Admin Login
-          </Link>
-        </p>
-
       </div>
     </div>
+  </>
   );
 }
 

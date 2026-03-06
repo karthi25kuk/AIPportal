@@ -9,6 +9,9 @@ export default function PostJob({ refresh }) {
     salary: "",
     website: "",
     location: "",
+    departments: [],
+    type: "Full-time",
+    deadline: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -22,6 +25,15 @@ export default function PostJob({ refresh }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const today = new Date();
+    const selected = new Date(form.deadline);
+
+    if (selected < today) {
+      alert("Deadline cannot be in the past");
+      setLoading(false);
+      return;
+    }
 
     try {
       const skillsArray = form.skills.split(",").map((s) => s.trim());
@@ -37,6 +49,8 @@ export default function PostJob({ refresh }) {
         // For now I'll ignore 'website' or embed it in description.
         // Actually, let's just send what we have, if not in schema it's ignored.
         location: form.location,
+        departments: form.departments,
+        deadline: form.deadline,
         // companyName: auto-filled by backend from user details
       });
 
@@ -49,6 +63,7 @@ export default function PostJob({ refresh }) {
         salary: "",
         location: "",
         type: "Full-time",
+        deadline: "",
       });
 
       if (refresh) refresh();
@@ -57,6 +72,37 @@ export default function PostJob({ refresh }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const departmentOptions = [
+    "CSE",
+    "IT",
+    "AIDS",
+    "AIML",
+    "CT",
+    "CD",
+    "CSBS",
+    "ECE",
+    "EEE",
+    "EIE",
+    "Mechanical",
+    "Mechatronics",
+    "Civil",
+    "Fashion Tech",
+    "Food Tech",
+  ];
+
+  const handleDepartmentChange = (dept) => {
+    setForm((prev) => {
+      const exists = prev.departments.includes(dept);
+
+      return {
+        ...prev,
+        departments: exists
+          ? prev.departments.filter((d) => d !== dept)
+          : [...prev.departments, dept],
+      };
+    });
   };
 
   return (
@@ -171,6 +217,55 @@ export default function PostJob({ refresh }) {
                 required
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+              Eligible Departments
+            </label>
+
+            <div className="flex flex-wrap gap-3">
+              {departmentOptions.map((dept) => (
+                <label
+                  key={dept}
+                  className={`px-4 py-2 rounded-lg border cursor-pointer transition 
+        ${
+          form.departments.includes(dept)
+            ? "bg-green-600 border-green-500 text-white"
+            : "bg-slate-900 border-slate-700 text-slate-300"
+        }`}
+                >
+                  <input
+                    type="checkbox"
+                    value={dept}
+                    checked={form.departments.includes(dept)}
+                    onChange={() => handleDepartmentChange(dept)}
+                    className="hidden"
+                  />
+
+                  {dept}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+              Application Deadline
+            </label>
+
+            <input
+              type="date"
+              name="deadline"
+              value={form.deadline}
+              onChange={handleChange}
+              className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-blue-500 outline-none"
+              required
+            />
+
+            <span className="text-xs text-slate-500 ml-1">
+              Students cannot apply after this date
+            </span>
           </div>
 
           {/* Submit */}

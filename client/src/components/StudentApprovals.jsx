@@ -119,23 +119,80 @@ export default function StudentApprovals({
                 <b className="text-white">Student:</b>{" "}
                 {selectedApp.student?.name || "Unknown"}
               </p>
+
               <p>
                 <b className="text-white">Email:</b>{" "}
                 {selectedApp.student?.email}
               </p>
+
+              <p>
+                <b className="text-white">Roll Number:</b>{" "}
+                {selectedApp.student?.studentDetails?.rollNumber || "Unknown"}
+              </p>
+
+              <p>
+                <b className="text-white">Department:</b>{" "}
+                {selectedApp.student?.studentDetails?.department || "Unknown"}
+              </p>
+
               <p>
                 <b className="text-white">Role:</b> {selectedApp.job?.title}
               </p>
+
               <p>
                 <b className="text-white">Company:</b>{" "}
                 {selectedApp.job?.companyName}
               </p>
+
+              <p>
+                <b className="text-white">Company Type:</b>{" "}
+                {selectedApp.job?.industry?.industryDetails?.companyType || "N/A"}
+              </p>
+
+              {/* ===== Student Academic Details ===== */}
+
+              <p>
+                <b className="text-white">10th Percentage:</b>{" "}
+                {selectedApp.tenth || "N/A"} %
+              </p>
+
+              <p>
+                <b className="text-white">12th Percentage:</b>{" "}
+                {selectedApp.twelfth || "N/A"} %
+              </p>
+
+              <p>
+                <b className="text-white">CGPA:</b> {selectedApp.cgpa || "N/A"}
+              </p>
+
+              <p>
+                <b className="text-white">Phone:</b>{" "}
+                {selectedApp.phone || "N/A"}
+              </p>
+
+              <p>
+                <b className="text-white">Resume:</b>{" "}
+                {selectedApp.resumeLink ? (
+                  <a
+                    href={selectedApp.resumeLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    View Resume
+                  </a>
+                ) : (
+                  "N/A"
+                )}
+              </p>
+
               <p>
                 <b className="text-white">Current Status:</b>{" "}
                 <span className={statusColor(selectedApp.status).split(" ")[0]}>
                   {selectedApp.status.replace(/_/g, " ")}
                 </span>
               </p>
+
               {selectedApp.status === "rejected" && selectedApp.feedback && (
                 <p>
                   <b className="text-white">Feedback:</b> {selectedApp.feedback}
@@ -146,16 +203,16 @@ export default function StudentApprovals({
             {/* Feedback */}
             {selectedApp.status === "pending" && (
               <textarea
-                placeholder="Add optional notes for industry..."
+                placeholder="Add optional notes if Rejected..."
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                className="w-full mt-6 bg-slate-800 text-white p-3 rounded-lg border border-slate-600 outline-none focus:border-blue-500 transition"
-                rows="3"
+                className="w-full mt-3 bg-slate-800 text-white p-3 rounded-lg border border-slate-600 outline-none focus:border-blue-500 transition"
+                rows="1"
               />
             )}
 
             {/* Buttons */}
-            <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-800">
+            <div className="flex justify-end gap-3 mt-3 pt-4 border-t border-slate-800">
               {selectedApp.status === "pending" ? (
                 <>
                   <button

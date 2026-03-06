@@ -22,16 +22,33 @@ const getJobs = async (req, res) => {
 // ================= GET SINGLE JOB =================
 const getJob = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id)
-      .populate('industry', 'name industryDetails');
 
-    if (!job)
-      return res.status(404).json({ success: false, message: 'Job not found' });
+    let query = { status: "open" };
 
-    res.json({ success: true, data: job });
+    // If logged-in user is a student → filter by department
+    if (req.user && req.user.role === "student") {
+
+      const student = req.user;
+
+      const studentDept = student.studentDetails?.department;
+
+      if (studentDept) {
+        query.departments = studentDept;
+      }
+    }
+
+    const jobs = await Job.find(query)
+      .populate("industry", "name industryDetails")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: jobs.length,
+      data: jobs
+    });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
@@ -55,7 +72,8 @@ const createJob = async (req, res) => {
       salary: req.body.salary,
       type: req.body.type,
       location: req.body.location,
-
+      departments: req.body.departments,
+      deadline: req.body.deadline,
       industry: req.user.id,  // always from token
       companyName: req.user.industryDetails?.companyName || req.user.name
     });
@@ -84,7 +102,7 @@ const updateJob = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
 
     // 🔒 Prevent protected field update
-    const allowedFields = ["title", "description", "skills", "salary", "type", "location", "status"];
+    const allowedFields = ["title", "description", "skills", "salary", "type", "location", "status","departments"];
 
     const updateData = {};
     allowedFields.forEach(field => {
@@ -149,6 +167,35 @@ const getMyJobs = async (req, res) => {
   }
 };
 
+const updateJobStatus = async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found"
+      });
+    }
+
+    job.status = req.body.status || "closed";
+
+    await job.save();
+
+    res.json({
+      success: true,
+      message: "Job status updated",
+      data: job
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
 
 module.exports = {
   getJobs,
@@ -156,5 +203,6 @@ module.exports = {
   createJob,
   updateJob,
   deleteJob,
-  getMyJobs
+  getMyJobs,
+  updateJobStatus
 };

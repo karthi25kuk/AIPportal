@@ -3,6 +3,7 @@ import api from "../api/api";
 
 export default function MyJobs({ jobs = [], applications = [], refresh }) {
   const [loading, setLoading] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
 
   // Filter applications for a specific job
   const getJobApplicants = (jobId) => {
@@ -10,17 +11,19 @@ export default function MyJobs({ jobs = [], applications = [], refresh }) {
   };
 
   // ===== REMOVE JOB =====
-  const handleRemove = async (jobId) => {
-    if (!window.confirm("Remove this job post?")) return;
+  const handleStopHiring = async (jobId) => {
+    if (!window.confirm("Stop accepting applications for this job?")) return;
+
     setLoading(true);
 
     try {
-      await api.delete(`/jobs/${jobId}`);
-      alert("Job removed. ✅");
+      await api.put(`/jobs/${jobId}/status`, { status: "closed" });
 
-      if (refresh) refresh(); // ✅ SPA-safe refresh
+      alert("Hiring stopped for this job.");
+
+      if (refresh) refresh();
     } catch {
-      alert("Failed to remove");
+      alert("Failed to update job status");
     } finally {
       setLoading(false);
     }
@@ -45,6 +48,12 @@ export default function MyJobs({ jobs = [], applications = [], refresh }) {
       </div>
     );
 
+  const isExpired = (job) => {
+    if (job.status === "closed") return true;
+    if (!job.deadline) return false;
+    return new Date(job.deadline) < new Date();
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-white flex items-center">
@@ -65,22 +74,36 @@ export default function MyJobs({ jobs = [], applications = [], refresh }) {
             >
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-700 pb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-white tracking-wide">
-                    {job.title}
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-white tracking-wide">
+                      {job.title}
+                    </h3>
+
+                    {isExpired(job) ? (
+                      <span className="text-xs px-2 py-1 rounded bg-red-600/10 text-red-500 border border-red-500/20 font-semibold">
+                        EXPIRED
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded bg-green-600/10 text-green-500 border border-green-500/20 font-semibold">
+                        LIVE
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
                     <span>📍 {job.location}</span>
-                    <span>💰 {job.salary || "N/A"}</span>
+                    <span>💰 {job.salary || "N/A"} LPA</span>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleRemove(job._id)}
-                  disabled={loading}
-                  className="mt-4 md:mt-0 bg-red-600/10 text-red-500 border border-red-500/20 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition text-sm font-medium"
-                >
-                  Delete Post
-                </button>
+                {!isExpired(job) && (
+                  <button
+                    onClick={() => handleStopHiring(job._id)}
+                    disabled={loading}
+                    className="mt-4 md:mt-0 bg-red-600/10 text-red-500 border border-red-500/20 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition text-sm font-medium"
+                  >
+                    Stop Hiring
+                  </button>
+                )}
               </div>
 
               {/* Applicants */}
@@ -111,13 +134,81 @@ export default function MyJobs({ jobs = [], applications = [], refresh }) {
                             {app.student?.email}
                           </p>
                         </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor(app.status)}`}
-                        >
-                          {app.status.toUpperCase()}
-                        </span>
+
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor(app.status)}`}
+                          >
+                            {app.status.toUpperCase()}
+                          </span>
+
+                          <button
+                            onClick={() => setSelectedApplication(app)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     ))}
+                  </div>
+                )}
+                {selectedApplication && (
+                  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-slate-900 p-6 rounded-xl w-[420px] border border-slate-700 shadow-xl">
+                      <h2 className="text-lg font-bold text-white mb-4">
+                        Applicant Details
+                      </h2>
+
+                      <div className="space-y-2 text-sm text-slate-300">
+                        <p>
+                          <strong>Name:</strong>{" "}
+                          {selectedApplication.student?.name}
+                        </p>
+
+                        <p>
+                          <strong>Email:</strong>{" "}
+                          {selectedApplication.student?.email}
+                        </p>
+
+                        <p>
+                          <strong>10th Percentage:</strong>{" "}
+                          {selectedApplication.tenth}%
+                        </p>
+
+                        <p>
+                          <strong>12th Percentage:</strong>{" "}
+                          {selectedApplication.twelfth}%
+                        </p>
+
+                        <p>
+                          <strong>CGPA:</strong> {selectedApplication.cgpa}
+                        </p>
+
+                        <p>
+                          <strong>Phone:</strong> {selectedApplication.phone}
+                        </p>
+
+                        <p>
+                          <strong>Resume:</strong>{" "}
+                          <a
+                            href={selectedApplication.resumeLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 underline"
+                          >
+                            View Resume
+                          </a>
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedApplication(null)}
+                        className="mt-5 bg-red-600 hover:bg-red-700 px-4 py-2 text-white rounded"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -33,6 +33,18 @@ const jobSchema = new mongoose.Schema({
   companyName: String,   // auto-filled from industry user
   location: String,
 
+  departments: {
+    type: [String],
+    required: true
+  },
+
+  deadline: Date,
+  status: {
+  type: String,
+  enum: ["open","closed"],
+  default: "open"
+  },
+  
   status: {
     type: String,
     enum: ['open', 'closed'],
