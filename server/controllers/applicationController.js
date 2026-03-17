@@ -109,9 +109,11 @@ const getApplications = async (req, res) => {
 
       const jobIds = jobs.map(job => job._id);
 
+      // previously we only returned approved applications for industry users
+      // which meant rejected applicants never showed up in the UI. return all
+      // statuses so the frontend can render approved + rejected sections.
       applications = await Application.find({
-        job: { $in: jobIds },
-        status: "approved"
+        job: { $in: jobIds }
       })
         .populate("student", "name email studentDetails")
         .populate({

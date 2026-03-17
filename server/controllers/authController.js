@@ -114,7 +114,7 @@ const loginUser = async (req, res) => {
 
   try {
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(400).json({
@@ -132,16 +132,22 @@ const loginUser = async (req, res) => {
       });
     }
 
-
-    // Industry must be approved
+    // ⭐ INDUSTRY APPROVAL CHECK
     if (user.role === "industry" && user.status !== "approved") {
+
       return res.status(403).json({
         success: false,
-        message: "Account pending admin approval"
+        status: user.status,                 
+        feedback: user.adminFeedback || "",  
+        message:
+          user.status === "pending"
+            ? "Your company account is waiting for admin approval"
+            : "Your company registration was rejected"
       });
+
     }
 
-
+    // ⭐ SUCCESS LOGIN
     res.json({
       success: true,
       data: {
@@ -151,7 +157,6 @@ const loginUser = async (req, res) => {
         name: user.name
       }
     });
-
 
   } catch (error) {
 
@@ -191,8 +196,90 @@ const getMe = async (req, res) => {
 
 };
 
+// ===================UPDATE PROFILE====================
+
+const updateProfile = async (req, res) => {
+  try {
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // update basic fields
+    if (req.body.name) user.name = req.body.name;
+
+    // ===== STUDENT =====
+    if (user.role === "student" && req.body.studentDetails) {
+
+      user.studentDetails.rollNumber =
+        req.body.studentDetails.rollNumber || user.studentDetails.rollNumber;
+
+      user.studentDetails.skills =
+        req.body.studentDetails.skills || user.studentDetails.skills;
+
+    }
+
+    // ===== INDUSTRY =====
+    if (user.role === "industry" && req.body.industryDetails) {
+
+      user.industryDetails.companyID =
+        req.body.industryDetails.companyID || user.industryDetails.companyID;
+
+      user.industryDetails.companyType =
+        req.body.industryDetails.companyType || user.industryDetails.companyType;
+
+      user.industryDetails.website =
+        req.body.industryDetails.website || user.industryDetails.website;
+
+      user.industryDetails.address =
+        req.body.industryDetails.address || user.industryDetails.address;
+
+    }
+
+    // ===== COLLEGE =====
+if (user.role === "college" && req.body.collegeDetails) {
+
+  if (!user.collegeDetails) user.collegeDetails = {};
+
+  user.collegeDetails.placementOfficer =
+    req.body.collegeDetails.placementOfficer || user.collegeDetails.placementOfficer;
+
+  user.collegeDetails.contactNumber =
+    req.body.collegeDetails.contactNumber || user.collegeDetails.contactNumber;
+
+  user.collegeDetails.website =
+    req.body.collegeDetails.website || user.collegeDetails.website;
+
+  user.collegeDetails.address =
+    req.body.collegeDetails.address || user.collegeDetails.address;
+
+}
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: user
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
-  getMe
+  getMe,
+  updateProfile
 };

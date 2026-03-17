@@ -38,13 +38,20 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
     }
   };
 
-  // ✅ FILTER ONLY VALID + OPEN JOBS
-  const validJobs = jobs.filter((j) => j && j.title && j.status === "open");
-
   const isExpired = (deadline) => {
     if (!deadline) return false;
     return new Date(deadline) < new Date();
   };
+
+  const validJobs = jobs.filter((j) => j && j.title);
+
+  const liveJobs = validJobs.filter(
+    (job) => job.status === "open" && !isExpired(job.deadline),
+  );
+
+  const expiredJobs = validJobs.filter(
+    (job) => job.status === "closed" || isExpired(job.deadline),
+  );
 
   const handleChange = (e) => {
     setFormData({
@@ -100,7 +107,9 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Latest Opportunities</h2>
+        <h2 className="text-2xl font-bold text-white">
+          Latest <span className="text-blue-500">Opportunities</span>
+        </h2>
         <span className="text-slate-400 text-sm">
           {validJobs.length} Jobs found
         </span>
@@ -117,64 +126,45 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {validJobs.map((job) => (
-          <div
-            key={job._id}
-            className="bg-slate-800 border border-slate-700 rounded-xl p-6 hover:bg-slate-750 transition shadow-lg hover:border-blue-500/30 flex flex-col group"
-          >
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition">
-                  {job.title}
-                </h3>
+      {/* ===== LIVE JOBS ===== */}
+      {liveJobs.length > 0 && (
+        <div className="mb-10">
+          <h3 className="text-xl font-bold text-green-400 mb-4">
+            Live Opportunities ({liveJobs.length})
+          </h3>
 
-                {isExpired(job.deadline) || job.status === "closed" ? (
-                  <span className="text-xs px-2 py-1 rounded bg-red-600/10 text-red-500 border border-red-500/20 font-semibold">
-                    EXPIRED
-                  </span>
-                ) : (
-                  <span className="text-xs px-2 py-1 rounded bg-green-600/10 text-green-500 border border-green-500/20 font-semibold">
-                    LIVE
-                  </span>
-                )}
-              </div>
-              <p className="text-slate-400 text-sm font-medium">
-                {job.companyName ||
-                  job.industry?.name ||
-                  "Bannari Amman Institute of Tech Industry"}
-              </p>
-            </div>
-
-            <div className="flex-1 space-y-2 mb-6">
-              <div className="flex items-center text-slate-400 text-sm">
-                <span className="mr-2"></span>Location:{" "}
-                {job.location || "Remote"}
-              </div>
-              <div className="flex items-center text-slate-400 text-sm">
-                <span className="mr-2"></span>Salary:{" "}
-                {job.salary || "Not specified"} LPA
-              </div>
-              <div className="flex items-center text-slate-400 text-sm">
-                <span className="mr-2"></span>Type: {job.type || "Full-time"}
-              </div>
-              <div className="flex items-center text-slate-400 text-sm">
-                Deadline:{" "}
-                {job.deadline
-                  ? new Date(job.deadline).toLocaleDateString()
-                  : "Not specified"}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setSelectedJob(job)}
-              className="w-full bg-slate-700 text-white py-2.5 rounded-lg hover:bg-blue-600 transition font-medium border border-slate-600 hover:border-blue-500"
-            >
-              View Details
-            </button>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {liveJobs.map((job) => (
+              <JobCard
+                key={job._id}
+                job={job}
+                setSelectedJob={setSelectedJob}
+                isExpired={isExpired}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* ===== EXPIRED JOBS ===== */}
+      {expiredJobs.length > 0 && (
+        <div>
+          <h3 className="text-xl font-bold text-red-400 mb-4 border-t border-slate-700 pt-6">
+            Expired Opportunities ({expiredJobs.length})
+          </h3>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-70">
+            {expiredJobs.map((job) => (
+              <JobCard
+                key={job._id}
+                job={job}
+                setSelectedJob={setSelectedJob}
+                isExpired={isExpired}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {selectedJob && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -242,7 +232,9 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
 
               {selectedJob.departments && (
                 <div>
-                  <h4 className="text-white font-bold mb-2">Eligible Departments</h4>
+                  <h4 className="text-white font-bold mb-2">
+                    Eligible Departments
+                  </h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedJob.departments.map((dept, i) => (
                       <span
@@ -375,4 +367,50 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
       )}
     </>
   );
+  function JobCard({ job, setSelectedJob, isExpired }) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 hover:bg-slate-750 transition shadow-lg hover:border-blue-500/30 flex flex-col group">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xl font-bold text-white group-hover:text-blue-500 transition">
+              {job.title}
+            </h3>
+
+            {isExpired(job.deadline) || job.status === "closed" ? (
+              <span className="text-xs px-2 py-1 rounded bg-red-600/10 text-red-500 border border-red-500/20 font-semibold">
+                EXPIRED
+              </span>
+            ) : (
+              <span className="text-xs px-2 py-1 rounded bg-green-600/10 text-green-500 border border-green-500/20 font-semibold">
+                LIVE
+              </span>
+            )}
+          </div>
+
+          <p className="text-yellow-400 text-sm font-medium">
+            {job.companyName}
+          </p>
+        </div>
+
+        <div className="flex-1 space-y-2 mb-6 text-sm text-slate-300">
+          <p>Location: {job.location || "Remote"}</p>
+          <p>Salary: {job.salary || "Not specified"} LPA</p>
+          <p>Type: {job.type || "Full-time"}</p>
+          <p>
+            Deadline:{" "}
+            {job.deadline
+              ? new Date(job.deadline).toLocaleDateString()
+              : "Not specified"}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setSelectedJob(job)}
+          className="w-full bg-slate-700 text-white py-2.5 rounded-lg hover:bg-blue-600 transition font-medium border border-slate-600 hover:border-blue-500"
+        >
+          View Details
+        </button>
+      </div>
+    );
+  }
 }

@@ -9,35 +9,25 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // COMMON
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // STUDENT
   const [rollNumber, setRollNumber] = useState("");
   const [collegeDept, setCollegeDept] = useState("");
 
-  // INDUSTRY
   const [companyId, setCompanyId] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
   const [companyType, setCompanyType] = useState("");
 
-  // SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    let payload = {
-      name,
-      email,
-      password,
-      role,
-    };
+    let payload = { name, email, password, role };
 
-    // STUDENT DATA
     if (role === "student") {
       payload.studentDetails = {
         rollNumber,
@@ -45,7 +35,6 @@ function Register() {
       };
     }
 
-    // INDUSTRY DATA
     if (role === "industry") {
       payload.industryDetails = {
         companyID: companyId,
@@ -63,7 +52,6 @@ function Register() {
         return;
       }
 
-      // STUDENT → AUTO LOGIN
       if (role === "student") {
         const user = res.data.data;
 
@@ -75,7 +63,6 @@ function Register() {
         navigate("/dashboard");
       }
 
-      // INDUSTRY → WAIT APPROVAL
       if (role === "industry") {
         alert("Registered! Wait for admin approval.");
         navigate("/login");
@@ -117,178 +104,183 @@ function Register() {
 
   return (
     <>
-    <header>
-          <nav className="bg-black text-white p-4 flex justify-between items-center">
-            <h1 className="text-xl font-bold">AIP Portal</h1>
-            <div>
-              <Link to="/" className="px-3 py-2 rounded bg-gray-800 hover:bg-gray-700 transition">
-                Home
-              </Link>
-            </div>
-          </nav>
-        </header>
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="bg-gray-950 p-8 rounded-lg w-full max-w-md text-center border border-gray-800">
-        <h1 className="text-3xl font-bold text-blue-600 mb-2">AIP Portal</h1>
-
-        <p className="text-slate-300 mb-6">Create your account</p>
-
-        {error && (
-          <p className="text-red-500 mb-4 bg-red-900/20 p-2 rounded">{error}</p>
-        )}
-
-        {/* ROLE BUTTONS */}
-        <div className="flex gap-2 mb-6 justify-center">
-          {["student", "industry"].map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              className={`px-4 py-2 rounded capitalize text-sm font-medium transition ${
-                role === r
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {/* COMMON */}
-          <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-            Name
-          </label>
-          <input
-            placeholder="EnterName"
-            onChange={(e) => setName(e.target.value)}
-            className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-            required
-          />
-
-          <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-            Email
-          </label>
-          <input
-            type="email"
-            placeholder="EnterEmail"
-            onChange={(e) => setEmail(e.target.value)}
-            className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-            required
-          />
-
-          <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-            Password
-          </label>
-          <input
-            type="password"
-            placeholder="EnterPassword"
-            onChange={(e) => setPassword(e.target.value)}
-            className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-            required
-          />
-
-          {/* STUDENT */}
-          {role === "student" && (
-            <>
-              <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-                Roll Number
-              </label>
-              <input
-                placeholder="Enter Roll Number"
-                onChange={(e) => setRollNumber(e.target.value)}
-                className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-                required
-              />
-
-              <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-                Select Department
-              </label>
-              <select
-                value={collegeDept}
-                onChange={(e) => setCollegeDept(e.target.value)}
-                className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-                required
-              >
-                <option value="">Select Department</option>
-
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {/* INDUSTRY */}
-          {role === "industry" && (
-            <>
-              <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-                Company ID
-              </label>
-              <input
-                placeholder="Enter Company ID"
-                onChange={(e) => setCompanyId(e.target.value)}
-                className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-              />
-
-              <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-                Company Website Link
-              </label>
-              <input
-                placeholder="Enter Company Website Link"
-                onChange={(e) => setCompanyWebsite(e.target.value)}
-                className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-              />
-
-              <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-                Select Company Type
-              </label>
-              <select
-                value={companyType}
-                onChange={(e) => setCompanyType(e.target.value)}
-                className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-                required
-              >
-                <option value="">Select Company Type</option>
-
-                {companyTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-
-              <label className="text-left text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
-                Address
-              </label>
-              <input
-                placeholder="Enter Address If Multiple,put Remote"
-                onChange={(e) => setCompanyAddress(e.target.value)}
-                className="p-3 rounded bg-slate-700 text-white border border-slate-600 outline-none focus:border-blue-500"
-              />
-            </>
-          )}
-
-          <button
-            disabled={loading}
-            className={`bg-blue-600 py-3 rounded text-white font-semibold mt-3 hover:bg-blue-700 transition ${
-              loading ? "opacity-70" : ""
-            }`}
+      <header className="bg-black/80 backdrop-blur border-b border-gray-800">
+        <nav className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center text-white">
+          <h1 className="text-2xl font-bold tracking-wide">AIP Portal</h1>
+          <Link
+            to="/"
+            className="px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 transition"
           >
-            {loading ? "Creating..." : "Register"}
-          </button>
-        </form>
-
-        <p className="text-slate-400 mt-4">
-          Already have account?
-          <Link to="/login" className="text-blue-500 ml-1 hover:underline">
-            Login
+            Home
           </Link>
-        </p>
+        </nav>
+      </header>
+
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-950 flex items-center justify-center px-4">
+        <div className="w-full max-w-5xl bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl grid md:grid-cols-2 overflow-hidden mt-5 mb-5">
+          {/* LEFT PANEL */}
+          <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-10">
+            <h2 className="text-4xl font-bold mb-4">Welcome</h2>
+            <p className="text-center text-white/80">
+              Join the AIP placement ecosystem. Students discover opportunities.
+              Industries find talent.
+            </p>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <div className="p-8 text-white">
+            <h2 className="text-3xl font-bold mb-2">Create Account</h2>
+            <p className="text-gray-400 mb-6">Register to continue</p>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500 text-red-400 p-3 rounded mb-4 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* ROLE SWITCH */}
+            <div className="flex bg-gray-900 rounded-lg p-1 mb-6">
+              {["student", "industry"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={`flex-1 py-2 rounded-md capitalize text-sm font-semibold transition ${
+                    role === r
+                      ? "bg-blue-600 shadow-lg"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                {role === "student" ? "Student Name" : "Industry Name"}
+              </label>
+              <input
+                placeholder="Full Name"
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none transition"
+                required
+              />
+
+              <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="Email Address"
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none transition"
+                required
+              />
+
+              <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="Password"
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none transition"
+                required
+              />
+
+              {role === "student" && (
+                <>
+                  <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                    Roll Number
+                  </label>
+                  <input
+                    placeholder="Roll Number"
+                    onChange={(e) => setRollNumber(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                    required
+                  />
+
+                  <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                    Department
+                  </label>
+                  <select
+                    value={collegeDept}
+                    onChange={(e) => setCollegeDept(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((d) => (
+                      <option key={d}>{d}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {role === "industry" && (
+                <>
+                  <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                    Company ID
+                  </label>
+                  <input
+                    placeholder="Company ID"
+                    onChange={(e) => setCompanyId(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                  />
+
+                  <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                    Company Website Link
+                  </label>
+                  <input
+                    placeholder="Company Website"
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                  />
+
+                  <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                    Company Type
+                  </label>
+                  <select
+                    value={companyType}
+                    onChange={(e) => setCompanyType(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                    required
+                  >
+                    <option value="">Company Type</option>
+                    {companyTypes.map((t) => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </select>
+
+                  <label className="text-slate-400 text-xs uppercase tracking-wider font-bold ml-1">
+                    Company Address / Remote
+                  </label>
+                  <input
+                    placeholder="Address / Remote"
+                    onChange={(e) => setCompanyAddress(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-blue-500 outline-none"
+                  />
+                </>
+              )}
+
+              <button
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-3 rounded-lg font-bold hover:scale-[1.02] active:scale-95 transition"
+              >
+                {loading ? "Creating Account..." : "Register"}
+              </button>
+            </form>
+
+            <p className="text-gray-400 text-sm mt-6 text-center">
+              Already have an account?
+              <Link to="/login" className="text-blue-400 ml-1 hover:underline">
+                Login
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
     </>
   );
 }

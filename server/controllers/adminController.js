@@ -1,9 +1,7 @@
-const User = require('../models/User');
+const User = require("../models/User");
 
 
 // ================= STATS =================
-// Only meaningful stats
-
 const getStats = async (req, res) => {
   try {
     const totalStudents = await User.countDocuments({ role: "student" });
@@ -11,11 +9,11 @@ const getStats = async (req, res) => {
     const totalIndustry = await User.countDocuments({ role: "industry" });
     const pendingIndustry = await User.countDocuments({
       role: "industry",
-      status: "pending"
+      status: "pending",
     });
     const approvedIndustry = await User.countDocuments({
       role: "industry",
-      status: "approved"
+      status: "approved",
     });
 
     res.json({
@@ -25,77 +23,63 @@ const getStats = async (req, res) => {
         industries: {
           total: totalIndustry,
           approved: approvedIndustry,
-          pending: pendingIndustry
-        }
-      }
+          pending: pendingIndustry,
+        },
+      },
     });
-
   } catch (err) {
-    res.status(500).json({ success:false, message:"Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 
 // ================= GET INDUSTRIES =================
-// Admin only views industries
-
 const getUsers = async (req, res) => {
   try {
-    const industries = await User.find({ role: "industry" })
-      .select("-password");
+    const industries = await User.find({ role: "industry" }).select("-password");
 
     res.json({
       success: true,
-      data: industries
+      data: industries,
     });
-
   } catch (err) {
-    res.status(500).json({ success:false, message:"Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 
 // ================= APPROVE / REJECT INDUSTRY =================
-
 const updateUserStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-
-    if (!["approved","rejected"].includes(status)) {
-      return res.status(400).json({
-        success:false,
-        message:"Invalid status"
-      });
-    }
-
     const user = await User.findById(req.params.id);
 
-    if (!user || user.role !== "industry") {
-      return res.status(404).json({
-        success:false,
-        message:"Industry not found"
-      });
+    if (!user)
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    user.status = req.body.status;
+
+    // ⭐ save rejection feedback
+    if (req.body.status === "rejected") {
+      user.adminFeedback = req.body.feedback || "Rejected by admin";
+    } else {
+      user.adminFeedback = "";
     }
 
-    user.status = status;
     await user.save();
 
     res.json({
-      success:true,
-      message:`Industry ${status}`
+      success: true,
+      message: "Status updated",
+      data: user,
     });
-
   } catch (err) {
-    res.status(500).json({ success:false, message:"Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 
 module.exports = {
   getStats,
   getUsers,
-  updateUserStatus
+  updateUserStatus,
 };

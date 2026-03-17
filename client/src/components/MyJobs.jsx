@@ -4,6 +4,7 @@ import api from "../api/api";
 export default function MyJobs({ jobs = [], applications = [], refresh }) {
   const [loading, setLoading] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [openJobId, setOpenJobId] = useState(null);
 
   // Filter applications for a specific job
   const getJobApplicants = (jobId) => {
@@ -67,155 +68,241 @@ export default function MyJobs({ jobs = [], applications = [], refresh }) {
         {jobs.map((job) => {
           const jobApplicants = getJobApplicants(job._id);
 
+          const approvedApplicants = jobApplicants.filter(
+            (app) => app.status === "approved",
+          );
+
+          const pendingApplicants = jobApplicants.filter(
+            (app) => app.status === "pending",
+          );
+
+          const rejectedApplicants = jobApplicants.filter(
+            (app) => app.status === "rejected",
+          );
+
+          const isOpen = openJobId === job._id;
+
           return (
             <div
               key={job._id}
               className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg hover:border-slate-600 transition"
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-700 pb-4">
+              {/* Job Header */}
+              {/* Job Header */}
+              <div className="flex justify-between items-start">
                 <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-bold text-white tracking-wide">
-                      {job.title}
-                    </h3>
+                  <h3 className="text-xl font-bold text-white">{job.title}</h3>
 
-                    {isExpired(job) ? (
-                      <span className="text-xs px-2 py-1 rounded bg-red-600/10 text-red-500 border border-red-500/20 font-semibold">
-                        EXPIRED
-                      </span>
-                    ) : (
-                      <span className="text-xs px-2 py-1 rounded bg-green-600/10 text-green-500 border border-green-500/20 font-semibold">
-                        LIVE
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-                    <span>📍 {job.location}</span>
-                    <span>💰 {job.salary || "N/A"} LPA</span>
-                  </div>
+                  <p className="text-sm text-slate-400">
+                    📍 {job.location} | 💰 {job.salary || "N/A"} LPA
+                  </p>                  
                 </div>
-
-                {!isExpired(job) && (
-                  <button
-                    onClick={() => handleStopHiring(job._id)}
-                    disabled={loading}
-                    className="mt-4 md:mt-0 bg-red-600/10 text-red-500 border border-red-500/20 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition text-sm font-medium"
+                <span
+                    className={`inline-block mt-4 text-xs px-3 py-1 rounded-full border ${
+                      isExpired(job)
+                        ? "text-red-400 bg-red-500/10 border-red-500/20"
+                        : "text-green-400 bg-green-500/10 border-green-500/20"
+                    }`}
                   >
-                    Stop Hiring
+                    {isExpired(job) ? "Hiring Closed" : "Hiring Active"}
+                </span>
+
+                <div className="flex gap-2 mt-2">
+                  {/* ⭐ STOP HIRING BUTTON */}
+                  {!isExpired(job) && (
+                    <button
+                      onClick={() => handleStopHiring(job._id)}
+                      disabled={loading}
+                      className="text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-600/10 text-sm px-4 py-2 rounded shadow-lg shadow-red-900/20"
+                    >
+                      Stop Hiring
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setOpenJobId(isOpen ? null : job._id)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded"
+                  >
+                    {isOpen ? "Hide Applicants" : "View Applicants"}
                   </button>
-                )}
+                </div>
               </div>
 
-              {/* Applicants */}
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <h4 className="text-slate-400 text-xs uppercase tracking-wider font-bold mb-4 flex items-center">
-                  Applicants{" "}
-                  <span className="ml-2 bg-slate-700 text-white px-2 py-0.5 rounded-full text-xs">
-                    {jobApplicants.length}
-                  </span>
-                </h4>
+              {/* Applicants Section */}
+              {isOpen && (
+                <div className="mt-4 space-y-6">
+                  {/* Approved Applicants */}
+                  <div>
+                    <h4 className="text-green-400 font-bold mb-2">
+                      Approved Applicants ({approvedApplicants.length})
+                    </h4>
 
-                {jobApplicants.length === 0 ? (
-                  <p className="text-slate-500 text-sm italic py-2">
-                    No approved applicants yet.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {jobApplicants.map((app) => (
-                      <div
-                        key={app._id}
-                        className="flex justify-between items-center bg-slate-800/80 p-3 rounded border border-slate-700"
-                      >
-                        <div>
-                          <p className="text-white font-medium">
-                            {app.student?.name}
-                          </p>
-                          <p className="text-slate-500 text-xs">
-                            {app.student?.email}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor(app.status)}`}
-                          >
-                            {app.status.toUpperCase()}
-                          </span>
+                    {approvedApplicants.length === 0 ? (
+                      <p className="text-slate-500 text-sm">
+                        No approved applicants.
+                      </p>
+                    ) : (
+                      approvedApplicants.map((app) => (
+                        <div
+                          key={app._id}
+                          className="flex justify-between items-center bg-slate-900 p-3 rounded mb-2"
+                        >
+                          <div>
+                            <p className="text-white font-medium">
+                              {app.student?.name}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {app.student?.email}
+                            </p>
+                          </div>
 
                           <button
                             onClick={() => setSelectedApplication(app)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+                            className="bg-blue-600 text-xs px-3 py-1 rounded"
                           >
-                            View Details
+                            Details
                           </button>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
-                )}
-                {selectedApplication && (
-                  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                    <div className="bg-slate-900 p-6 rounded-xl w-[420px] border border-slate-700 shadow-xl">
-                      <h2 className="text-lg font-bold text-white mb-4">
-                        Applicant Details
-                      </h2>
 
-                      <div className="space-y-2 text-sm text-slate-300">
-                        <p>
-                          <strong>Name:</strong>{" "}
-                          {selectedApplication.student?.name}
-                        </p>
+                  {/* Pending Applicants */}
+                  <div>
+                    <h4 className="text-orange-400 font-bold mb-2">
+                      Pending Applicants ({pendingApplicants.length})
+                    </h4>
 
-                        <p>
-                          <strong>Email:</strong>{" "}
-                          {selectedApplication.student?.email}
-                        </p>
+                    {pendingApplicants.length === 0 ? (
+                      <p className="text-slate-500 text-sm">
+                        No pending applicants.
+                      </p>
+                    ) : (
+                      pendingApplicants.map((app) => (
+                        <div
+                          key={app._id}
+                          className="flex justify-between items-center bg-slate-900 p-3 rounded mb-2"
+                        >
+                          <div>
+                            <p className="text-white font-medium">
+                              {app.student?.name}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {app.student?.email}
+                            </p>
+                          </div>
 
-                        <p>
-                          <strong>10th Percentage:</strong>{" "}
-                          {selectedApplication.tenth}%
-                        </p>
-
-                        <p>
-                          <strong>12th Percentage:</strong>{" "}
-                          {selectedApplication.twelfth}%
-                        </p>
-
-                        <p>
-                          <strong>CGPA:</strong> {selectedApplication.cgpa}
-                        </p>
-
-                        <p>
-                          <strong>Phone:</strong> {selectedApplication.phone}
-                        </p>
-
-                        <p>
-                          <strong>Resume:</strong>{" "}
-                          <a
-                            href={selectedApplication.resumeLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 underline"
+                          <button
+                            onClick={() => setSelectedApplication(app)}
+                            className="bg-blue-600 text-xs px-3 py-1 rounded"
                           >
-                            View Resume
-                          </a>
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => setSelectedApplication(null)}
-                        className="mt-5 bg-red-600 hover:bg-red-700 px-4 py-2 text-white rounded"
-                      >
-                        Close
-                      </button>
-                    </div>
+                            Details
+                          </button>
+                        </div>
+                      ))
+                    )}
                   </div>
-                )}
-              </div>
+                  {/* Rejected Applicants */}
+                  <div>
+                    <h4 className="text-red-400 font-bold mb-2">
+                      Rejected Applicants ({rejectedApplicants.length})
+                    </h4>
+
+                    {rejectedApplicants.length === 0 ? (
+                      <p className="text-slate-500 text-sm">
+                        No rejected applicants.
+                      </p>
+                    ) : (
+                      rejectedApplicants.map((app) => (
+                        <div
+                          key={app._id}
+                          className="flex justify-between items-center bg-slate-900 p-3 rounded mb-2"
+                        >
+                          <div>
+                            <p className="text-white font-medium">
+                              {app.student?.name}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {app.student?.email}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedApplication(app)}
+                            className="bg-blue-600 text-xs px-3 py-1 rounded"
+                          >
+                            Details
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {selectedApplication && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-900 p-6 rounded-xl w-[420px] border border-slate-700 shadow-xl">
+            <h2 className="text-lg font-bold text-white mb-4">
+              Applicant Details
+            </h2>
+
+            <div className="space-y-2 text-sm text-slate-300">
+              <p>
+                <strong>Name:</strong> {selectedApplication.student?.name}
+              </p>
+
+              <p>
+                <strong>Email:</strong> {selectedApplication.student?.email}
+              </p>
+
+              <p>
+                <strong>Department:</strong>{" "}
+                {selectedApplication.student?.studentDetails?.department}
+              </p>
+
+              <p>
+                <strong>10th Percentage:</strong> {selectedApplication.tenth}%
+              </p>
+
+              <p>
+                <strong>12th Percentage:</strong> {selectedApplication.twelfth}%
+              </p>
+
+              <p>
+                <strong>CGPA:</strong> {selectedApplication.cgpa}
+              </p>
+
+              <p>
+                <strong>Phone:</strong> {selectedApplication.phone}
+              </p>
+
+              <p>
+                <strong>Resume:</strong>{" "}
+                <a
+                  href={selectedApplication.resumeLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 underline"
+                >
+                  View Resume
+                </a>
+              </p>
+            </div>
+
+            <button
+              onClick={() => setSelectedApplication(null)}
+              className="mt-5 bg-red-600 hover:bg-red-700 px-4 py-2 text-white rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,14 @@ const Job = require('../models/Job');
 // ================= GET ALL JOBS (PUBLIC) =================
 const getJobs = async (req, res) => {
   try {
-    const jobs = await Job.find({ status: 'open' })
+    let query = { status: 'open' };
+
+    // If user is admin, show all jobs
+    if (req.user && req.user.role === 'admin') {
+      query = {};
+    }
+
+    const jobs = await Job.find(query)
       .populate('industry', 'name industryDetails')
       .sort({ createdAt: -1 });
 

@@ -1,12 +1,24 @@
 import { useState, useEffect } from "react";
 import api from "../api/api";
 import { useNavigate } from "react-router-dom";
+import { BarChart3, TrendingUp } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Cell,
+} from "recharts";
 
 import MyApplications from "../components/MyApplications";
 import MyJobs from "../components/MyJobs";
 import PostJob from "../components/PostJobs";
 import JobOpportunities from "../components/JobOpportunities";
 import StudentApprovals from "../components/StudentApprovals";
+import Profile from "../components/Profile";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -60,8 +72,8 @@ function Dashboard() {
       // ===== STUDENT =====
       if (role === "student") {
         newStats.total = apps.length;
-        newStats.approved = apps.filter(a => a.status === "approved").length;
-        newStats.pending = apps.filter(a => a.status === "pending").length;
+        newStats.approved = apps.filter((a) => a.status === "approved").length;
+        newStats.pending = apps.filter((a) => a.status === "pending").length;
       }
 
       // ===== INDUSTRY =====
@@ -72,22 +84,21 @@ function Dashboard() {
         setMyJobs(myJobsData);
         newStats.totalJobs = myJobsData.length;
 
-        // Backend already returns only approved applications
+        // we now receive all statuses from the backend, so compute approved
+        // separately. "applicants" is the total count.
         newStats.applicants = apps.length;
-        newStats.approved = apps.length;
+        newStats.approved = apps.filter((a) => a.status === "approved").length;
       }
 
       // ===== COLLEGE =====
       if (role === "college") {
         newStats.total = apps.length;
-        newStats.approved = apps.filter(a => a.status === "approved").length;
-        newStats.pending = apps.filter(a => a.status === "pending").length;
+        newStats.approved = apps.filter((a) => a.status === "approved").length;
+        newStats.pending = apps.filter((a) => a.status === "pending").length;
       }
 
       setStats(newStats);
-
     } catch (err) {
-
       // Auto logout on token expiry
       if (err.response?.status === 401) {
         localStorage.clear();
@@ -95,7 +106,6 @@ function Dashboard() {
       } else {
         console.error(err);
       }
-
     } finally {
       setLoading(false);
     }
@@ -112,35 +122,188 @@ function Dashboard() {
 
   if (!role) return null;
 
+  const jobCharts = myJobs.map((job) => {
+    const jobApps = applications.filter((a) => a.job?._id === job._id);
+
+    const approved = jobApps.filter((a) => a.status === "approved").length;
+    const pending = jobApps.filter((a) => a.status === "pending").length;
+    const rejected = jobApps.filter((a) => a.status === "rejected").length;
+
+    return {
+      jobTitle: job.title,
+      data: [
+        { name: "Approved", value: approved },
+        { name: "Pending", value: pending },
+        { name: "Rejected", value: rejected },
+      ],
+    };
+  });
+
+  // ===== student chart data =====
+  const studentChartData = [
+    {
+      name: "Approved",
+      value: applications.filter((a) => a.status === "approved").length,
+    },
+    {
+      name: "Pending",
+      value: applications.filter((a) => a.status === "pending").length,
+    },
+    {
+      name: "Rejected",
+      value: applications.filter((a) => a.status === "rejected").length,
+    },
+  ];
+
+  // ===== college chart data (per job) =====
+  const collegeJobCharts = jobs.map((job) => {
+    const jobApps = applications.filter((a) => a.job?._id === job._id);
+    const approved = jobApps.filter((a) => a.status === "approved").length;
+    const pending = jobApps.filter((a) => a.status === "pending").length;
+    const rejected = jobApps.filter((a) => a.status === "rejected").length;
+
+    return {
+      jobTitle: job.title,
+      data: [
+        { name: "Approved", value: approved },
+        { name: "Pending", value: pending },
+        { name: "Rejected", value: rejected },
+      ],
+    };
+  });
+  const STATUS_COLORS = {
+    Approved: "#10b981", // Emerald 500
+    Pending: "#f59e0b", // Amber 500
+    Rejected: "#f43f5e", // Rose 500
+  };
+
+  // 2. Reusable Chart Card Component
+  const AnalyticsCard = ({ title, subtitle, data }) => (
+    <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-3xl p-6 shadow-xl transition-all hover:border-indigo-500/30">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-white font-bold text-lg flex items-center gap-2">
+            <BarChart3 size={18} className="text-indigo-400" />
+            {title}
+          </h3>
+          {subtitle && (
+            <p className="text-slate-500 text-xs mt-1 font-medium uppercase tracking-wider">
+              {subtitle}
+            </p>
+          )}
+        </div>
+        <div className="bg-slate-900/50 p-2 rounded-lg">
+          <TrendingUp size={16} className="text-slate-400" />
+        </div>
+      </div>
+
+      <div className="h-[250px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="#334155"
+              opacity={0.5}
+            />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 500 }}
+              dy={10}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#94a3b8", fontSize: 12 }}
+            />
+            <Tooltip
+              cursor={{ fill: "rgba(255,255,255,0.05)" }}
+              contentStyle={{
+                backgroundColor: "#1e293b",
+                border: "1px solid #334155",
+                borderRadius: "12px",
+                fontSize: "12px",
+                color: "#fff",
+              }}
+              itemStyle={{ fontWeight: "bold" }}
+            />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={35}>
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={STATUS_COLORS[entry.name] || "#6366f1"}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen bg-slate-900 text-white font-sans">
-
       {/* SIDEBAR */}
       <div className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
         <div className="p-6 border-b border-slate-700">
-          <h2 className="text-2xl text-blue-500 font-extrabold">AIP Portal</h2>
+          <h2 className="text-2xl text-white font-extrabold">AIP <span className="text-blue-500">Portal</span></h2>
           <p className="text-slate-400 text-xs mt-1 uppercase">{role}</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-          <NavItem active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} label="Dashboard" />
-          <NavItem active={activeTab === "opportunities"} onClick={() => setActiveTab("opportunities")} label="Job Opportunities" />
+          <NavItem
+            active={activeTab === "dashboard"}
+            onClick={() => setActiveTab("dashboard")}
+            label="Dashboard"
+          />
+          <NavItem
+            active={activeTab === "opportunities"}
+            onClick={() => setActiveTab("opportunities")}
+            label="Job Opportunities"
+          />
 
           {role === "industry" && (
-            <NavItem active={activeTab === "postjobs"} onClick={() => setActiveTab("postjobs")} label="Post New Job" />
+            <NavItem
+              active={activeTab === "postjobs"}
+              onClick={() => setActiveTab("postjobs")}
+              label="Post New Job"
+            />
           )}
 
           {role === "student" && (
-            <NavItem active={activeTab === "myapplications"} onClick={() => setActiveTab("myapplications")} label="My Applications" />
+            <NavItem
+              active={activeTab === "myapplications"}
+              onClick={() => setActiveTab("myapplications")}
+              label="My Applications"
+            />
           )}
 
           {role === "industry" && (
-            <NavItem active={activeTab === "myjobs"} onClick={() => setActiveTab("myjobs")} label="Manage Jobs" />
+            <NavItem
+              active={activeTab === "myjobs"}
+              onClick={() => setActiveTab("myjobs")}
+              label="Manage Jobs"
+            />
           )}
 
           {role === "college" && (
-            <NavItem active={activeTab === "studentapprovals"} onClick={() => setActiveTab("studentapprovals")} label="Student Approvals" />
+            <NavItem
+              active={activeTab === "studentapprovals"}
+              onClick={() => setActiveTab("studentapprovals")}
+              label="Student Approvals"
+            />
           )}
+
+          <NavItem
+            active={activeTab === "profile"}
+            onClick={() => setActiveTab("profile")}
+            label="Profile"
+          />
         </nav>
 
         <div className="p-4 border-t border-slate-700">
@@ -156,39 +319,83 @@ function Dashboard() {
 
       {/* MAIN CONTENT */}
       <div className="flex-1 p-8">
-
         {loading ? (
           <div className="text-center text-blue-400">Loading...</div>
         ) : (
           <>
             {activeTab === "dashboard" && (
-              <div className="grid md:grid-cols-3 gap-6">
+              <>
+                <h1 className="text-3xl font-semibold text-white mb-6">
+                  Welcome,{" "}
+                  <span className="font-bold text-blue-500">{name} !</span>
+                </h1>
 
+                {/* DASHBOARD CARDS */}
+                <div className="grid md:grid-cols-3 gap-6">
+                  {role === "student" && (
+                    <>
+                      <Card title="Total Applications" value={stats.total} />
+                      <Card title="Approved" value={stats.approved} />
+                      <Card title="Pending" value={stats.pending} />
+                    </>
+                  )}
+
+                  {role === "college" && (
+                    <>
+                      <Card title="Total Requests" value={stats.total} />
+                      <Card title="Approved" value={stats.approved} />
+                      <Card title="Pending" value={stats.pending} />
+                    </>
+                  )}
+
+                  {role === "industry" && (
+                    <>
+                      <Card title="Jobs Posted" value={stats.totalJobs} />
+                      <Card title="Applicants" value={stats.applicants} />
+                      <Card title="Approved Students" value={stats.approved} />
+                    </>
+                  )}
+                </div>
+
+                {/* ===== STUDENT CHART ===== */}
                 {role === "student" && (
-                  <>
-                    <Card title="Total Applications" value={stats.total} />
-                    <Card title="Approved" value={stats.approved} />
-                    <Card title="Pending" value={stats.pending} />
-                  </>
+                  <div className="mt-10 max-w-2xl">
+                    <AnalyticsCard
+                      title="Application Status Overview"
+                      subtitle="Your progress at a glance"
+                      data={studentChartData}
+                    />
+                  </div>
                 )}
 
+                {/* ===== INDUSTRY CHARTS ===== */}
+                {role === "industry" && jobCharts.length > 0 && (
+                  <div className="mt-10 grid md:grid-cols-2 gap-6">
+                    {jobCharts.map((job, index) => (
+                      <AnalyticsCard
+                        key={index}
+                        title={job.jobTitle}
+                        subtitle="Current Hiring Funnel"
+                        data={job.data}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* ===== COLLEGE CHARTS ===== */}
                 {role === "college" && (
-                  <>
-                    <Card title="Total Requests" value={stats.total} />
-                    <Card title="Approved" value={stats.approved} />
-                    <Card title="Pending" value={stats.pending} />
-                  </>
+                  <div className="mt-10 grid md:grid-cols-2 gap-6">
+                    {collegeJobCharts.map((job, index) => (
+                      <AnalyticsCard
+                        key={index}
+                        title={job.jobTitle}
+                        subtitle={job.companyName || "Organization Analytics"}
+                        data={job.data}
+                      />
+                    ))}
+                  </div>
                 )}
-
-                {role === "industry" && (
-                  <>
-                    <Card title="Jobs Posted" value={stats.totalJobs} />
-                    <Card title="Applicants" value={stats.applicants} />
-                    <Card title="Approved Students" value={stats.approved} />
-                  </>
-                )}
-
-              </div>
+              </>
             )}
 
             {activeTab === "studentapprovals" && role === "college" && (
@@ -198,20 +405,27 @@ function Dashboard() {
               />
             )}
 
-            {role === "industry" && activeTab === "postjobs" && <PostJob refresh={fetchData} />}
+            {role === "industry" && activeTab === "postjobs" && (
+              <PostJob refresh={fetchData} />
+            )}
 
             {role === "student" && activeTab === "myapplications" && (
               <MyApplications applications={applications} />
             )}
 
             {activeTab === "myjobs" && role === "industry" && (
-              <MyJobs jobs={myJobs} applications={applications} refresh={fetchData} />
+              <MyJobs
+                jobs={myJobs}
+                applications={applications}
+                refresh={fetchData}
+              />
             )}
 
             {activeTab === "opportunities" && (
               <JobOpportunities role={role} jobs={jobs} refresh={fetchData} />
             )}
 
+            {activeTab === "profile" && <Profile />}
           </>
         )}
       </div>
@@ -224,9 +438,7 @@ function NavItem({ active, onClick, label }) {
     <div
       onClick={onClick}
       className={`px-4 py-3 cursor-pointer rounded ${
-        active
-          ? "bg-blue-600 text-white"
-          : "text-slate-400 hover:bg-slate-700"
+        active ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-slate-700"
       }`}
     >
       {label}
