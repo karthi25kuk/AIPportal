@@ -41,7 +41,7 @@ export default function StudentApprovals({
     setLoading(true);
 
     try {
-      await api.put(`/applications/${selectedApp._id}/status`, {
+      await api.put(`/api/applications/${selectedApp._id}/status`, {
         status: status,
         feedback: feedback,
       });
