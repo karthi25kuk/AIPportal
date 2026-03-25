@@ -90,7 +90,7 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
     }
 
     try {
-      await api.post(`/applications/${selectedJob._id}`, formData);
+      await api.post(`/api/applications/${selectedJob._id}`, formData);
 
       alert("Application submitted successfully ✅");
 
