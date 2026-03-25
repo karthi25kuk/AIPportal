@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
+import cors from 'cors';
 
 // Load env vars
 dotenv.config();
@@ -28,7 +29,10 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+  origin: "https://your-frontend.vercel.app",
+  credentials: true
+}));
 
 // Mount routers
 app.use('/api/auth', auth);
