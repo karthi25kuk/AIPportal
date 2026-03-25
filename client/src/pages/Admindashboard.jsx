@@ -53,7 +53,7 @@ export default function AdminDashboard() {
   const loadJobs = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/jobs");
+      const res = await api.get("/api/jobs");
       setJobs(res.data.data);
     } catch (err) {
       console.error(err);
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
   const loadIndustries = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/admin/users");
+      const res = await api.get("/api/admin/users");
       const pending = res.data.data.filter(
         (u) => u.role === "industry" && u.status === "pending",
       );
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
       setSelectedUser(null);
       loadIndustries();
 
-      const res = await api.get("/admin/stats");
+      const res = await api.get("/api/admin/stats");
       setStats(res.data.data);
     } catch {
       alert("Action failed");

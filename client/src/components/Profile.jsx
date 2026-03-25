@@ -11,7 +11,7 @@ export default function Profile() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const res = await api.get("/auth/me");
+        const res = await api.get("/api/auth/me");
         setUser(res.data.data);
         setForm(res.data.data);
       } catch (err) {
@@ -31,7 +31,7 @@ export default function Profile() {
 
   const handleSave = async () => {
     try {
-      const res = await api.put("/auth/profile", form);
+      const res = await api.put("/api/auth/profile", form);
       setUser(res.data.data);
       setEditing(false);
       alert("Profile updated successfully!");

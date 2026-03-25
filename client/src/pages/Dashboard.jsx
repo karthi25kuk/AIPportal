@@ -61,11 +61,11 @@ function Dashboard() {
       };
 
       // Public jobs
-      const publicJobsRes = await api.get("/jobs");
+      const publicJobsRes = await api.get("/api/jobs");
       setJobs(publicJobsRes.data.data || []);
 
       // Role-based applications
-      const appsRes = await api.get("/applications");
+      const appsRes = await api.get("/api/applications");
       const apps = appsRes.data.data || [];
       setApplications(apps);
 
@@ -78,7 +78,7 @@ function Dashboard() {
 
       // ===== INDUSTRY =====
       if (role === "industry") {
-        const myJobsRes = await api.get("/jobs/my");
+        const myJobsRes = await api.get("/api/jobs/my");
         const myJobsData = myJobsRes.data.data || [];
 
         setMyJobs(myJobsData);

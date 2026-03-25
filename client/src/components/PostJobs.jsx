@@ -38,7 +38,7 @@ export default function PostJob({ refresh }) {
     try {
       const skillsArray = form.skills.split(",").map((s) => s.trim());
 
-      await api.post("/jobs", {
+      await api.post("/api/jobs", {
         title: form.title,
         description: form.description,
         skills: skillsArray,

@@ -45,7 +45,7 @@ function Register() {
     }
 
     try {
-      const res = await api.post("/auth/register", payload);
+      const res = await api.post("/api/auth/register", payload);
 
       if (!res.data.success) {
         setError(res.data.message);
