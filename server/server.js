@@ -4,7 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
-import cors from 'cors';
+
 
 // Load env vars
 dotenv.config();
