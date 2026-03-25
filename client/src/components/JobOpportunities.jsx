@@ -128,7 +128,7 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
       {/* ===== LIVE JOBS ===== */}
       {liveJobs.length > 0 && (
         <div className="mb-10">
-          <h3 className="text-xl font-bold text-green-400 mb-4">
+          <h3 className="text-xl font-bold text-white mb-4">
             Live Opportunities ({liveJobs.length})
           </h3>
 
@@ -148,7 +148,7 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
       {/* ===== EXPIRED JOBS ===== */}
       {expiredJobs.length > 0 && (
         <div>
-          <h3 className="text-xl font-bold text-red-400 mb-4 border-t border-slate-700 pt-6">
+          <h3 className="text-xl font-bold text-white mb-4 border-t border-slate-700 pt-6">
             Expired Opportunities ({expiredJobs.length})
           </h3>
 
