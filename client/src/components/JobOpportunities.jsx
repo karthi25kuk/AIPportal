@@ -25,8 +25,7 @@ export default function JobOpportunities({ role, jobs = [], refresh }) {
     setApplying(true);
     try {
       // ✅ FIXED ENDPOINT to match /api/applications/:jobId
-      await api.post(`/applications/${jobId}`);
-
+      await api.post(`/api/applications/${jobId}`);
       alert("Applied successfully ✅");
       setSelectedJob(null);
       // Optional: instead of reload, just update UI
