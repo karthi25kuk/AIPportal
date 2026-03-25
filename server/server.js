@@ -30,7 +30,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Enable CORS
 app.use(cors({
-  origin: "https://your-frontend.vercel.app",
+  origin:process.env.FRONTEND_URL,
   credentials: true
 }));
 
