@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/api/adminlogin");
+    navigate("/adminlogin");
   };
 
   return (
