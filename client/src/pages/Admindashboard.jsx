@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   // AUTH CHECK
   useEffect(() => {
     if (localStorage.getItem("role") !== "admin") {
-      navigate("/adminlogin");
+      navigate("/api/adminlogin");
     }
   }, [navigate]);
 
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (tab === "dashboard") {
       api
-        .get("/admin/stats")
+        .get("/api/admin/stats")
         .then((res) => setStats(res.data.data))
         .catch(console.error);
     }
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
 
   const handleAction = async (id, status, feedbackMsg = "") => {
     try {
-      await api.put(`/admin/users/${id}/status`, {
+      await api.put(`/api/admin/users/${id}/status`, {
         status,
         feedback: feedbackMsg,
       });
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/adminlogin");
+    navigate("/api/adminlogin");
   };
 
   return (
